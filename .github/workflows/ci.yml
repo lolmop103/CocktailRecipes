@@ -46,3 +46,35 @@ jobs:
 
       - name: Build
         run: npm run build
+
+  docker:
+    name: Docker image builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: verify
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Plain `docker build` on the runner's preinstalled Docker: no action
+      # inputs, no Buildx driver to configure, no remote cache backend. This
+      # exact command is what the image is verified with locally.
+      - name: Build image
+        run: docker build --progress=plain -t cocktail:ci .
+
+      - name: Smoke-test the container
+        run: |
+          docker run -d --name cocktail -p 3000:3000 cocktail:ci
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:3000/api/health; then
+              echo "container is healthy"
+              curl -fsS http://localhost:3000/api/recipes > /dev/null
+              docker rm -f cocktail
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::server did not become healthy in time"
+          docker logs cocktail
+          exit 1

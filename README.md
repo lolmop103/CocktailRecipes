@@ -116,11 +116,6 @@ The image serves the built client from Express on port 3000, runs as the
 unprivileged `node` user, and keeps the database on the `cocktail-db` volume at
 `/data`.
 
-> **Note:** the Docker build is not yet covered by CI — it has not been run
-> end to end on a machine with a working Docker daemon. The application itself
-> is verified on every push (lint, types, 231 tests, coverage, production
-> build); only the image packaging is unproven.
-
 ## Contributing
 
 See [AGENT.md](AGENT.md) for conventions, commit format, and development workflow.

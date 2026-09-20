@@ -88,13 +88,16 @@ gaps, data-layer performance, and accessibility.
     of the router's location, which drops the query string under any
     non-browser history; now uses `useLocation()` and is pinned by a test.
 
-- **CI scope** (2026-09-21): the Docker job was removed from CI. Four runs
-    failed inside `docker build` (1s → 11s → 21s as each cause was fixed:
-    missing Buildx, then cache export on the docker driver, then something
-    around `npm ci` that could not be identified without the build log or a
-    local daemon). The `verify` job passed on every one of those runs. The
-    Dockerfile and compose file remain in the repo; the job should be restored
-    once `docker build .` has been run successfully on a real daemon.
+- **Docker** (2026-09-21): the image now builds, boots and serves. The failure
+    was `npm rebuild`: `npm ci --ignore-scripts` correctly skipped the shared
+    workspace's `prepare` hook, but `npm rebuild` re-runs it on any tree
+    mutation, and `prepare` needs tsc — absent under `--omit=dev`. Resolved by
+    dropping the separate production-install stage: the builder installs
+    everything, builds, then `npm prune --omit=dev`, which is the one ordering
+    where the hook can still succeed. Verified locally: build passes, container
+    reports healthy, 8 seeded recipes served, SPA deep links resolve, runs as
+    uid 1000 (node), 342MB, and data survives container replacement on a
+    mounted volume. The CI job is restored.
   - **Node 22** (2026-09-21): Node 20 reached end-of-life on 2026-04-30.
     Bumped the base image, CI and docs to 22 (LTS until 2027-04-30) and added
     `engines: { node: ">=22" }` to every package, which was previously absent.

@@ -1,19 +1,19 @@
 # ---------------------------------------------------------------------------
-# Stage 1: builder — install all deps, build client and server
+# Stage 1: builder — full install, build every workspace, then prune to prod
 # ---------------------------------------------------------------------------
 FROM node:22-alpine AS builder
 
-# Build tools needed to compile the better-sqlite3 native module.
+# Needed to compile the better-sqlite3 native module.
 RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
 
-# Copy workspace manifests first for layer-cache efficiency.
+# Manifests first so the install layer caches independently of the sources.
 COPY package.json package-lock.json ./
 COPY server/package.json ./server/
 COPY client/package.json ./client/
 # The shared workspace is copied whole: its `prepare` hook builds it during
-# install, so the sources must already be present.
+# install, so its sources have to be present already.
 COPY packages/ ./packages/
 
 RUN npm ci
@@ -25,29 +25,15 @@ RUN npm run build --workspace=@cocktail/shared
 RUN npm run build --workspace=client
 RUN npm run build --workspace=server
 
-# ---------------------------------------------------------------------------
-# Stage 2: deps — production node_modules, built once with the toolchain
-# ---------------------------------------------------------------------------
-FROM node:22-alpine AS deps
-
-RUN apk add --no-cache python3 make g++
-
-WORKDIR /app
-
-COPY package.json package-lock.json ./
-COPY server/package.json ./server/
-COPY client/package.json ./client/
-COPY packages/ ./packages/
-
-# The shared workspace's `prepare` hook runs tsc, which is a devDependency and
-# so absent here — npm runs prepare even with --omit=dev, which would fail the
-# build. Lifecycle scripts are skipped and the one native module that genuinely
-# needs compiling is rebuilt explicitly. The shared package's dist is copied
-# from the builder stage, so nothing is lost by not building it here.
-RUN npm ci --omit=dev --ignore-scripts && npm rebuild better-sqlite3
+# Strip devDependencies in place. This happens here, rather than in a separate
+# production-install stage, because npm re-runs the shared workspace's `prepare`
+# hook on any tree mutation — and `prepare` needs tsc, which only exists while
+# devDependencies are installed. Pruning after the build is the one ordering
+# where that hook can still succeed.
+RUN npm prune --omit=dev
 
 # ---------------------------------------------------------------------------
-# Stage 3: runner — no compiler toolchain, no dev dependencies
+# Stage 2: runner — no compiler toolchain, no dev dependencies
 # ---------------------------------------------------------------------------
 FROM node:22-alpine AS runner
 
@@ -59,17 +45,14 @@ ENV NODE_ENV=production
 # DATA_DIR being passed in.
 ENV DATA_DIR=/data
 
-# Pre-built native modules come from the deps stage, so the ~150MB compiler
-# toolchain never reaches the final image.
 # npm hoists workspace dependencies to the root, so this single tree is the
-# whole runtime: better-sqlite3, express, helmet, cors, http-errors and zod all
-# live here, alongside the @cocktail/shared symlink into packages/.
-COPY --from=deps /app/node_modules ./node_modules
+# whole runtime: better-sqlite3 (already compiled in the builder), express,
+# helmet, cors, http-errors and zod, plus the @cocktail/shared symlink.
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
-COPY packages/shared/package.json ./packages/shared/
-COPY package.json ./
-COPY server/package.json ./server/
-
+COPY --from=builder /app/packages/shared/package.json ./packages/shared/
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/server/package.json ./server/
 COPY --from=builder /app/server/dist ./server/dist
 COPY --from=builder /app/client/dist ./client/dist
 
