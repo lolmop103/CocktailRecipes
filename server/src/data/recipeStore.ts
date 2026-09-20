@@ -1,7 +1,13 @@
 import { db } from './db.js';
 import { resetDb } from './seed.js';
 import { allocateId } from './ids.js';
-import type { Ingredient, Recipe, UpdateRecipeInput as RecipeUpdate } from '@cocktail/shared';
+import type {
+  Ingredient,
+  Recipe,
+  RecipeFilters,
+  UpdateRecipeInput as RecipeUpdate,
+} from '@cocktail/shared';
+import { compileRecipeQuery } from './recipeQuery.js';
 
 // ---------------------------------------------------------------------------
 // Row types (SQLite returns plain objects)
@@ -27,14 +33,8 @@ interface IngredientRow {
 // Prepared statements — hoisted so each is compiled once for the process
 // ---------------------------------------------------------------------------
 
-const stmtGetAll = db.prepare<[]>(
-  'SELECT id, name, instructions, glass_type, tags, rating, is_mocktail FROM recipes',
-);
 const stmtGetById = db.prepare<[string]>(
   'SELECT id, name, instructions, glass_type, tags, rating, is_mocktail FROM recipes WHERE id = ?',
-);
-const stmtAllIngredients = db.prepare<[]>(
-  'SELECT recipe_id, name, amount FROM recipe_ingredients ORDER BY recipe_id, position',
 );
 const stmtIngredientsFor = db.prepare<[string]>(
   'SELECT recipe_id, name, amount FROM recipe_ingredients WHERE recipe_id = ? ORDER BY position',
@@ -87,16 +87,32 @@ function hydrateOne(row: RecipeRow): Recipe {
   return toRecipe(row, ingredients);
 }
 
-/**
- * Hydrates every recipe in two queries rather than one per recipe.
- */
-function hydrateAll(rows: RecipeRow[]): Recipe[] {
+function groupIngredients(ingredientRows: IngredientRow[]): Map<string, Ingredient[]> {
   const byRecipe = new Map<string, Ingredient[]>();
-  for (const row of stmtAllIngredients.all() as IngredientRow[]) {
+  for (const row of ingredientRows) {
     const bucket = byRecipe.get(row.recipe_id);
     if (bucket) bucket.push(toIngredient(row));
     else byRecipe.set(row.recipe_id, [toIngredient(row)]);
   }
+  return byRecipe;
+}
+
+/**
+ * Hydrates a filtered subset, fetching only the ingredients those rows need
+ * rather than every ingredient in the table.
+ */
+function hydrateMany(rows: RecipeRow[]): Recipe[] {
+  if (rows.length === 0) return [];
+
+  const placeholders = rows.map(() => '?').join(',');
+  const ingredientRows = db
+    .prepare(
+      'SELECT recipe_id, name, amount FROM recipe_ingredients' +
+        ` WHERE recipe_id IN (${placeholders}) ORDER BY recipe_id, position`,
+    )
+    .all(...rows.map((r) => r.id)) as IngredientRow[];
+
+  const byRecipe = groupIngredients(ingredientRows);
   return rows.map((row) => toRecipe(row, byRecipe.get(row.id) ?? []));
 }
 
@@ -165,8 +181,16 @@ const updateRecipeTx = db.transaction((id: string, patch: RecipeUpdate): RecipeR
 // ---------------------------------------------------------------------------
 
 export const recipeStore = {
-  getAll(): Recipe[] {
-    return hydrateAll(stmtGetAll.all() as RecipeRow[]);
+  /**
+   * Filters and sorts in SQL rather than loading every row and doing it in
+   * memory, so the indexes on recipes(name) and recipe_ingredients(name) are
+   * actually used. The statement is built per call because the shape depends
+   * on how many ingredient terms were selected; values are always bound.
+   */
+  query(filters: RecipeFilters, collectionId?: string): Recipe[] {
+    const { sql, params } = compileRecipeQuery(filters, collectionId);
+    const rows = db.prepare(sql).all(...params) as RecipeRow[];
+    return hydrateMany(rows);
   },
 
   getById(id: string): Recipe | undefined {

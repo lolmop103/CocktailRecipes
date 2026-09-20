@@ -69,6 +69,10 @@ const m003_filterIndexes: Migration = {
   version: 3,
   name: 'filter_indexes',
   up: (db) => {
+    // NOTE: idx_recipe_ingredients_name cannot serve the ingredient filter,
+    // which matches substrings ("rum" must find "white rum") — SQLite cannot
+    // use an index for a LIKE pattern with a leading wildcard. It is kept for
+    // exact-name lookups; see the handoff before assuming it helps filtering.
     db.exec(`
       CREATE INDEX IF NOT EXISTS idx_recipe_ingredients_name
         ON recipe_ingredients(name COLLATE NOCASE);

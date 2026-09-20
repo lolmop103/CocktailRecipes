@@ -102,6 +102,19 @@ gaps, data-layer performance, and accessibility.
     Bumped the base image, CI and docs to 22 (LTS until 2027-04-30) and added
     `engines: { node: ">=22" }` to every package, which was previously absent.
 
+- **Filtering moved into SQL** (2026-09-21): `recipeService.list` no longer
+    loads every recipe and filters in JavaScript. `data/recipeQuery.ts` compiles
+    the filters into a parameterised SELECT and `recipeStore.query` runs it,
+    hydrating only the matched rows' ingredients instead of the whole table.
+    Semantics are unchanged, including substring ingredient matching and the
+    rating sort order; the old `filterAndSort` unit tests were replaced by 34
+    cases that exercise the real SQL against the in-memory database.
+    **Partial result, stated honestly:** `idx_recipes_name` is now used (the
+    name sort no longer builds a temp B-tree), but
+    `idx_recipe_ingredients_name` still is not and cannot be — ingredient
+    filtering matches substrings, and SQLite cannot use an index for a LIKE
+    pattern with a leading wildcard. Verified with EXPLAIN QUERY PLAN.
+
 ## Risks
 - `collection_recipes.recipe_id` gained a FK in the schema, but
   `CREATE TABLE IF NOT EXISTS` cannot add it to a pre-existing database. New
