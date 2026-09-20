@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+server/node_modules/
+client/node_modules/
+
+# Build outputs (copied by Dockerfile stages explicitly)
+server/dist/
+client/dist/
+
+# Runtime data — DB lives in a Docker volume, not in the image
+server/data-store/
+
+# Environment files (never bake secrets into the image)
+.env
+.env.*
+
+# Version control
+.git/
+.github/
+
+# Editor / OS
+.vscode/
+.idea/
+*.suo
+.DS_Store
+Thumbs.db
+
+# Test artefacts
+coverage/

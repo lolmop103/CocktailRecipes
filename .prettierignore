@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+package-lock.json
+server/data-store/
+
+# AOP task/knowledge notes — prose, not code.
+kb/
+tasks/

@@ -1,0 +1,14 @@
+# The .editorconfig mandates LF. Without this, Git's autocrlf on Windows would
+# convert files back to CRLF on checkout and the normalisation would be undone.
+* text=auto eol=lf
+
+# Binary — never touch line endings or try to diff these.
+*.png binary
+*.jpg binary
+*.ico binary
+*.db binary
+*.woff binary
+*.woff2 binary
+
+# Generated: collapse in diffs and exclude from language statistics.
+package-lock.json linguist-generated=true -diff

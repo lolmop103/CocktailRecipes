@@ -1,0 +1,18 @@
+services:
+  app:
+    build: .
+    ports:
+      - '3000:3000'
+    volumes:
+      - cocktail-db:/data
+    environment:
+      NODE_ENV: production
+      PORT: '3000'
+      DATA_DIR: /data
+      LOG_LEVEL: info
+      # The client is served by Express in production, so origin = same host
+      CLIENT_ORIGIN: http://localhost:3000
+    restart: unless-stopped
+
+volumes:
+  cocktail-db:

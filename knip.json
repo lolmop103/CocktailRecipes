@@ -1,0 +1,14 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "workspaces": {
+    "server": {
+      "entry": ["tests/**/*.test.ts"],
+      "project": ["src/**/*.ts"]
+    },
+    "client": {
+      "entry": ["tests/**/*.test.{ts,tsx}"],
+      "project": ["src/**/*.{ts,tsx}"]
+    }
+  },
+  "ignoreExportsUsedInFile": true
+}
