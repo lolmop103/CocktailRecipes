@@ -9,6 +9,8 @@ collections.
 Full-stack TypeScript — Node.js/Express + SQLite on the back, React + Vite on the front,
 with the API contract defined once in a shared package and consumed by both.
 
+![The recipe list: ruled paper, ingredient filters, and measurements set in monospace](docs/screenshot.png)
+
 ## Prerequisites
 
 - Node.js ≥ 22 LTS

@@ -25,5 +25,8 @@ server/data-store/
 .DS_Store
 Thumbs.db
 
+# Documentation assets — not build input
+docs/
+
 # Test artefacts
 coverage/
