@@ -101,6 +101,12 @@ npm run typecheck             # tsc --noEmit
 
 ## Tooling
 
-The AOP agent toolkit (protocol, agents and skills) lives outside this
-repository and is not required to build, test or run the project. Everything
-needed is in `npm run verify`.
+Project-specific skills live in `.github/skills/<name>/SKILL.md` and are
+committed with the code:
+
+- `react-components` — component declaration, file-per-component, and where
+  logic belongs relative to a component body.
+
+The wider AOP agent toolkit (protocol, agents, cross-project skills) lives
+outside this repository and is not required to build, test or run the project.
+Everything needed is in `npm run verify`.
