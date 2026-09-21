@@ -52,3 +52,11 @@ coverage/
 # Temporary
 *.tmp
 *.temp
+
+# AOP agent toolkit — kept locally so the agents can read it, never committed.
+# Several of these files reference an employer's internal modules, solution
+# names and private component library; this repository is public.
+# Remove these lines only after those references have been stripped.
+.github/skills/
+.github/agents/
+.github/release/
