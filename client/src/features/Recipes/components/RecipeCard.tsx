@@ -1,6 +1,7 @@
 import type { Recipe, Unit, Collection } from '../types/index.js';
 import { formatAmount } from '../utils/units.js';
 import { CollectionPicker } from './CollectionPicker.js';
+import { StarRating } from './StarRating.js';
 
 interface Props {
   recipe: Recipe;
@@ -14,36 +15,7 @@ interface Props {
   onCreateCollection: (name: string) => void;
 }
 
-const RATINGS = [1, 2, 3, 4, 5] as const;
-
-function StarRating({
-  value,
-  recipeName,
-  onRate,
-}: {
-  value?: number;
-  recipeName: string;
-  onRate: (n: number) => void;
-}) {
-  return (
-    <div className="star-rating" role="group" aria-label={`Rating: ${value ?? 'unrated'}`}>
-      {RATINGS.map((n) => (
-        <button
-          key={n}
-          type="button"
-          className={`star ${n <= (value ?? 0) ? 'star--filled' : 'star--empty'}`}
-          aria-label={`Rate ${recipeName} ${n} star${n > 1 ? 's' : ''}`}
-          aria-pressed={value === n}
-          onClick={() => onRate(n)}
-        >
-          ★
-        </button>
-      ))}
-    </div>
-  );
-}
-
-export function RecipeCard({
+export const RecipeCard = ({
   recipe,
   unit,
   collections,
@@ -53,12 +25,12 @@ export function RecipeCard({
   onAddToCollection,
   onRemoveFromCollection,
   onCreateCollection,
-}: Props) {
-  function handleDelete() {
+}: Props) => {
+  const handleDelete = () => {
     if (window.confirm(`Delete "${recipe.name}"? This cannot be undone.`)) {
       onDelete();
     }
-  }
+  };
 
   return (
     <article className="recipe-card">
@@ -133,4 +105,4 @@ export function RecipeCard({
       </div>
     </article>
   );
-}
+};

@@ -143,3 +143,68 @@ export function toUpdatePayload(form: FormState): RecipeUpdatePayload {
     isMocktail: form.isMocktail,
   };
 }
+
+// ---------------------------------------------------------------------------
+// State transitions
+//
+// Pure `(state) => state` helpers rather than methods on the component, so the
+// form's behaviour can be tested without rendering anything.
+// ---------------------------------------------------------------------------
+
+export function withField<K extends keyof FormState>(
+  form: FormState,
+  key: K,
+  value: FormState[K],
+): FormState {
+  return { ...form, [key]: value };
+}
+
+export function withIngredientField(
+  form: FormState,
+  index: number,
+  field: keyof IngredientRow,
+  value: string,
+): FormState {
+  return {
+    ...form,
+    ingredients: form.ingredients.map((row, i) => (i === index ? { ...row, [field]: value } : row)),
+  };
+}
+
+export function withIngredientAdded(form: FormState): FormState {
+  return { ...form, ingredients: [...form.ingredients, newRow()] };
+}
+
+export function withIngredientRemoved(form: FormState, index: number): FormState {
+  return { ...form, ingredients: form.ingredients.filter((_, i) => i !== index) };
+}
+
+export function withTagToggled(form: FormState, tag: string): FormState {
+  return {
+    ...form,
+    tags: form.tags.includes(tag) ? form.tags.filter((t) => t !== tag) : [...form.tags, tag],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Validation and ingredient discovery
+// ---------------------------------------------------------------------------
+
+/** Returns the message to show, or null when the form may be submitted. */
+export function validate(form: FormState): string | null {
+  if (!form.name.trim() || filledRows(form).length === 0) {
+    return 'Name and at least one ingredient are required.';
+  }
+  return null;
+}
+
+/**
+ * Ingredient names the catalogue has not seen before. These need an
+ * alcoholic/non-alcoholic answer before mocktail filtering can be trusted.
+ */
+export function unknownIngredientNames(rows: IngredientRow[], known: { name: string }[]): string[] {
+  const seen = new Set(known.map((m) => m.name.toLowerCase()));
+  return [...new Set(rows.map((row) => row.name.trim()))].filter(
+    (name) => !seen.has(name.toLowerCase()),
+  );
+}

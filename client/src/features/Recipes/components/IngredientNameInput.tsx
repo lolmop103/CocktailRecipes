@@ -14,13 +14,13 @@ interface Props {
 }
 
 /** Inline autocomplete for a single ingredient name in the recipe form. */
-export function IngredientNameInput({
+export const IngredientNameInput = ({
   value,
   index,
   knownIngredients,
   allSelectedNames,
   onChange,
-}: Props) {
+}: Props) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const listboxId = useId();
@@ -106,4 +106,4 @@ export function IngredientNameInput({
       )}
     </div>
   );
-}
+};

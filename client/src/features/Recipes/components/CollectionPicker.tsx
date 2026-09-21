@@ -11,14 +11,14 @@ interface Props {
   onCreate: (name: string) => void;
 }
 
-export function CollectionPicker({
+export const CollectionPicker = ({
   recipeId,
   recipeName,
   collections,
   onAdd,
   onRemove,
   onCreate,
-}: Props) {
+}: Props) => {
   const [isOpen, setIsOpen] = useState(false);
   const [newName, setNewName] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
@@ -36,12 +36,12 @@ export function CollectionPicker({
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [isOpen, close]);
 
-  function handleCreate() {
+  const handleCreate = () => {
     const trimmed = newName.trim();
     if (!trimmed) return;
     onCreate(trimmed);
     setNewName('');
-  }
+  };
 
   return (
     <div ref={containerRef} className="collection-picker">
@@ -105,4 +105,4 @@ export function CollectionPicker({
       )}
     </div>
   );
-}
+};

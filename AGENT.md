@@ -66,6 +66,9 @@ npm run typecheck             # tsc --noEmit
 - **Schema changes**: add a numbered migration. Never edit a released one, and never rely on `CREATE TABLE IF NOT EXISTS` to alter an existing table.
 - **Server state**: TanStack Query, never hand-rolled fetch effects. Invalidate through `queryKeys`.
 - **Filter/view state**: the URL, not `useState` — every view must be linkable.
+- **Components**: arrow const with a named `interface Props` — `export const Name = ({ … }: Props) => …`. Never a `function` declaration, and never a `function` inside a component body. Class components only where React requires one (error boundaries).
+- **One component per file**: a helper used by a single parent still gets its own file. A nested `const Helper = …` above the export cannot be tested or reused without exporting the parent's internals.
+- **Logic out of components**: pure state transitions and validation live in a sibling `*Form.ts`; derivations live in `utils/`; cross-component behaviour lives in `hooks/`. Each gets a unit test. Event handlers that close over local state stay in the component — extracting those only threads dependencies through argument lists.
 - **Tests**: Vitest + React Testing Library. `Method_Scenario_Expected` naming. AAA structure. No `.only` or `.skip` in committed code — enforced by `vitest/no-disabled-tests` and `vitest/no-focused-tests`, not by review. Every test must assert (`vitest/expect-expect`).
 - **Commits**: Conventional Commits `#{N}.{s}.T:summary`.
 - **Formatting**: Prettier + EditorConfig = law. No suppression directives.

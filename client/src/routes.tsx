@@ -1,7 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { RecipesPage } from './features/Recipes/RecipesPage.js';
 
-export function AppRoutes() {
+export const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/cocktails" replace />} />
@@ -11,4 +11,4 @@ export function AppRoutes() {
       <Route path="*" element={<Navigate to="/cocktails" replace />} />
     </Routes>
   );
-}
+};

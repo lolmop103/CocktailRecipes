@@ -15,11 +15,16 @@ import {
   emptyForm,
   filledRows,
   formFromRecipe,
-  newRow,
   toCreatePayload,
   toUpdatePayload,
+  unknownIngredientNames,
+  validate,
+  withField,
+  withIngredientAdded,
+  withIngredientField,
+  withIngredientRemoved,
+  withTagToggled,
   type FormState,
-  type IngredientRow,
 } from './recipeForm.js';
 
 interface Props {
@@ -32,7 +37,7 @@ interface Props {
   onClassifyIngredients: (results: { name: string; isAlcoholic: boolean }[]) => Promise<void>;
 }
 
-export function AddRecipeModal({
+export const AddRecipeModal = ({
   initialRecipe,
   knownIngredients,
   defaultIsMocktail = false,
@@ -40,7 +45,7 @@ export function AddRecipeModal({
   onCreated,
   onUpdated,
   onClassifyIngredients,
-}: Props) {
+}: Props) => {
   const isEditing = initialRecipe !== undefined;
   const [form, setForm] = useState<FormState>(() =>
     initialRecipe ? formFromRecipe(initialRecipe) : emptyForm(defaultIsMocktail),
@@ -52,37 +57,13 @@ export function AddRecipeModal({
 
   useModal(dialogRef, onClose);
 
-  function setField<K extends keyof FormState>(key: K, value: FormState[K]) {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  }
-
-  function setIngredientField(index: number, field: keyof IngredientRow, value: string) {
-    setForm((prev) => ({
-      ...prev,
-      ingredients: prev.ingredients.map((row, i) =>
-        i === index ? { ...row, [field]: value } : row,
-      ),
-    }));
-  }
-
-  function addIngredient() {
-    setForm((prev) => ({ ...prev, ingredients: [...prev.ingredients, newRow()] }));
-  }
-
-  function removeIngredient(index: number) {
-    setForm((prev) => ({
-      ...prev,
-      ingredients: prev.ingredients.filter((_, i) => i !== index),
-    }));
-  }
-
-  async function handleSubmit(event: FormEvent) {
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
 
-    const rows = filledRows(form);
-    if (!form.name.trim() || rows.length === 0) {
-      setError('Name and at least one ingredient are required.');
+    const problem = validate(form);
+    if (problem) {
+      setError(problem);
       return;
     }
 
@@ -94,12 +75,7 @@ export function AddRecipeModal({
         await onCreated(toCreatePayload(form));
       }
 
-      // Ingredient names we have never seen need an alcoholic/non-alcoholic
-      // classification before mocktail filtering can be trusted.
-      const known = new Set(knownIngredients.map((m) => m.name.toLowerCase()));
-      const unknown = [...new Set(rows.map((row) => row.name.trim()))].filter(
-        (name) => !known.has(name.toLowerCase()),
-      );
+      const unknown = unknownIngredientNames(filledRows(form), knownIngredients);
 
       if (unknown.length > 0) {
         setPendingClassification(unknown);
@@ -117,7 +93,7 @@ export function AddRecipeModal({
     } finally {
       setSaving(false);
     }
-  }
+  };
 
   if (pendingClassification !== null) {
     return (
@@ -162,7 +138,7 @@ export function AddRecipeModal({
               type="button"
               className={`form-type-btn${!form.isMocktail ? ' form-type-btn--active' : ''}`}
               aria-pressed={!form.isMocktail}
-              onClick={() => setField('isMocktail', false)}
+              onClick={() => setForm((prev) => withField(prev, 'isMocktail', false))}
             >
               Cocktail
             </button>
@@ -170,7 +146,7 @@ export function AddRecipeModal({
               type="button"
               className={`form-type-btn${form.isMocktail ? ' form-type-btn--active' : ''}`}
               aria-pressed={form.isMocktail}
-              onClick={() => setField('isMocktail', true)}
+              onClick={() => setForm((prev) => withField(prev, 'isMocktail', true))}
             >
               Mocktail
             </button>
@@ -183,7 +159,7 @@ export function AddRecipeModal({
                 id="recipe-name"
                 type="text"
                 value={form.name}
-                onChange={(e) => setField('name', e.target.value)}
+                onChange={(e) => setForm((prev) => withField(prev, 'name', e.target.value))}
                 // eslint-disable-next-line jsx-a11y/no-autofocus -- a modal dialog is where autofocus belongs
                 autoFocus
               />
@@ -198,7 +174,7 @@ export function AddRecipeModal({
                     index={i}
                     knownIngredients={knownIngredients}
                     allSelectedNames={allSelectedNames}
-                    onChange={(val) => setIngredientField(i, 'name', val)}
+                    onChange={(val) => setForm((prev) => withIngredientField(prev, i, 'name', val))}
                   />
                   <div className="ingredient-row__amount-group">
                     <input
@@ -208,7 +184,9 @@ export function AddRecipeModal({
                       value={row.amount}
                       aria-label={`Ingredient ${i + 1} amount`}
                       className="ingredient-row__amount"
-                      onChange={(e) => setIngredientField(i, 'amount', e.target.value)}
+                      onChange={(e) =>
+                        setForm((prev) => withIngredientField(prev, i, 'amount', e.target.value))
+                      }
                     />
                     <div
                       className="unit-toggle unit-toggle--sm"
@@ -219,7 +197,9 @@ export function AddRecipeModal({
                         type="button"
                         className={`unit-toggle__btn${row.unit === 'ml' ? ' unit-toggle__btn--active' : ''}`}
                         aria-pressed={row.unit === 'ml'}
-                        onClick={() => setIngredientField(i, 'unit', 'ml')}
+                        onClick={() =>
+                          setForm((prev) => withIngredientField(prev, i, 'unit', 'ml'))
+                        }
                       >
                         ml
                       </button>
@@ -227,7 +207,9 @@ export function AddRecipeModal({
                         type="button"
                         className={`unit-toggle__btn${row.unit === 'oz' ? ' unit-toggle__btn--active' : ''}`}
                         aria-pressed={row.unit === 'oz'}
-                        onClick={() => setIngredientField(i, 'unit', 'oz')}
+                        onClick={() =>
+                          setForm((prev) => withIngredientField(prev, i, 'unit', 'oz'))
+                        }
                       >
                         oz
                       </button>
@@ -238,14 +220,18 @@ export function AddRecipeModal({
                       type="button"
                       className="ingredient-row__remove"
                       aria-label={`Remove ingredient ${i + 1}`}
-                      onClick={() => removeIngredient(i)}
+                      onClick={() => setForm((prev) => withIngredientRemoved(prev, i))}
                     >
                       ×
                     </button>
                   )}
                 </div>
               ))}
-              <button type="button" className="btn-add-ingredient" onClick={addIngredient}>
+              <button
+                type="button"
+                className="btn-add-ingredient"
+                onClick={() => setForm(withIngredientAdded)}
+              >
                 + Add ingredient
               </button>
             </fieldset>
@@ -255,7 +241,7 @@ export function AddRecipeModal({
               <select
                 id="recipe-glass"
                 value={form.glassType}
-                onChange={(e) => setField('glassType', e.target.value)}
+                onChange={(e) => setForm((prev) => withField(prev, 'glassType', e.target.value))}
               >
                 <option value="">— choose —</option>
                 {GLASS_TYPES.map((glass) => (
@@ -272,7 +258,7 @@ export function AddRecipeModal({
                 id="recipe-instructions"
                 value={form.instructions}
                 rows={3}
-                onChange={(e) => setField('instructions', e.target.value)}
+                onChange={(e) => setForm((prev) => withField(prev, 'instructions', e.target.value))}
               />
             </div>
 
@@ -287,14 +273,7 @@ export function AddRecipeModal({
                     <input
                       type="checkbox"
                       checked={form.tags.includes(tag)}
-                      onChange={() =>
-                        setField(
-                          'tags',
-                          form.tags.includes(tag)
-                            ? form.tags.filter((t) => t !== tag)
-                            : [...form.tags, tag],
-                        )
-                      }
+                      onChange={() => setForm((prev) => withTagToggled(prev, tag))}
                     />
                     {tag}
                   </label>
@@ -321,4 +300,4 @@ export function AddRecipeModal({
       </div>
     </div>
   );
-}
+};

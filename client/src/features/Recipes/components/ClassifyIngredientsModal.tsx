@@ -1,10 +1,6 @@
 import { useState, useRef } from 'react';
 import { useModal } from '../hooks/useModal.js';
-
-interface ClassifyResult {
-  name: string;
-  isAlcoholic: boolean;
-}
+import { toClassifyResults, undecidedNames, type ClassifyResult } from './classifyForm.js';
 
 interface Props {
   names: string[];
@@ -12,7 +8,7 @@ interface Props {
   onSkip: () => void;
 }
 
-export function ClassifyIngredientsModal({ names, onConfirm, onSkip }: Props) {
+export const ClassifyIngredientsModal = ({ names, onConfirm, onSkip }: Props) => {
   // No default: guessing "alcoholic" for every new ingredient silently
   // corrupts mocktail filtering whenever the guess is wrong.
   const [choices, setChoices] = useState<Record<string, boolean | undefined>>({});
@@ -20,16 +16,16 @@ export function ClassifyIngredientsModal({ names, onConfirm, onSkip }: Props) {
 
   useModal(dialogRef, onSkip);
 
-  const undecided = names.filter((name) => choices[name] === undefined);
+  const undecided = undecidedNames(names, choices);
 
-  function choose(name: string, isAlcoholic: boolean) {
+  const choose = (name: string, isAlcoholic: boolean) => {
     setChoices((prev) => ({ ...prev, [name]: isAlcoholic }));
-  }
+  };
 
-  function handleConfirm() {
+  const handleConfirm = () => {
     if (undecided.length > 0) return;
-    onConfirm(names.map((name) => ({ name, isAlcoholic: choices[name] === true })));
-  }
+    onConfirm(toClassifyResults(names, choices));
+  };
 
   return (
     <div className="modal-overlay" role="presentation">
@@ -89,4 +85,4 @@ export function ClassifyIngredientsModal({ names, onConfirm, onSkip }: Props) {
       </div>
     </div>
   );
-}
+};

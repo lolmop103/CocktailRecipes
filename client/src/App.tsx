@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { ErrorBoundary } from './components/ErrorBoundary.js';
 import { AppRoutes } from './routes.js';
 
-export function App() {
+export const App = () => {
   return (
     <div className="app">
       <header className="app-header">
@@ -15,4 +15,4 @@ export function App() {
       </ErrorBoundary>
     </div>
   );
-}
+};

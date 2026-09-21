@@ -1,57 +1,24 @@
 import { useState } from 'react';
-import type { RecipeFilters, IngredientMeta, Collection } from '../types/index.js';
+import type {
+  RecipeFilters as RecipeFiltersState,
+  IngredientMeta,
+  Collection,
+} from '../types/index.js';
 import { IngredientSelector } from './IngredientSelector.js';
 import { ManageIngredientsPanel } from './ManageIngredientsPanel.js';
+import { StarRatingFilter } from './StarRatingFilter.js';
 
 interface Props {
-  filters: RecipeFilters;
+  filters: RecipeFiltersState;
   knownIngredients: IngredientMeta[];
   collections: Collection[];
   hideAlcoholicIngredients?: boolean;
-  onChange: <K extends keyof RecipeFilters>(key: K, value: RecipeFilters[K]) => void;
+  onChange: <K extends keyof RecipeFiltersState>(key: K, value: RecipeFiltersState[K]) => void;
   onReset: () => void;
   onUpdateIngredientMeta: (name: string, isAlcoholic: boolean) => Promise<void>;
 }
 
-function StarRatingFilter({
-  value,
-  onChange,
-}: {
-  value: number | undefined;
-  onChange: (v: number | undefined) => void;
-}) {
-  return (
-    <div className="filter-group">
-      <span className="filter-label">Minimum rating</span>
-      <div className="star-filter" role="group" aria-label="Minimum star rating">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <button
-            key={n}
-            type="button"
-            className={`star-filter__star${n <= (value ?? 0) ? ' star-filter__star--active' : ''}`}
-            aria-label={`${n} star minimum`}
-            aria-pressed={value === n}
-            onClick={() => onChange(value === n ? undefined : n)}
-          >
-            ★
-          </button>
-        ))}
-        {value !== undefined && (
-          <button
-            type="button"
-            className="star-filter__clear"
-            aria-label="Clear rating filter"
-            onClick={() => onChange(undefined)}
-          >
-            ✕
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-export function RecipeFilters({
+export const RecipeFilters = ({
   filters,
   knownIngredients,
   collections,
@@ -59,7 +26,7 @@ export function RecipeFilters({
   onChange,
   onReset,
   onUpdateIngredientMeta,
-}: Props) {
+}: Props) => {
   const [showManage, setShowManage] = useState(false);
   return (
     <aside className="recipe-filters">
@@ -156,4 +123,4 @@ export function RecipeFilters({
       )}
     </aside>
   );
-}
+};

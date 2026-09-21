@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { nextIndexForArrowKey } from '../utils/keyboard.js';
 
 export type RecipeTab = 'cocktail' | 'mocktail';
 
@@ -13,22 +14,21 @@ const TABS: { id: RecipeTab; label: string }[] = [
   { id: 'mocktail', label: '🥤 Mocktails' },
 ];
 
-export function RecipeTabs({ activeTab, panelId, onChange }: Props) {
+export const RecipeTabs = ({ activeTab, panelId, onChange }: Props) => {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
 
   /** Arrow-key navigation is part of the tablist contract, not a nicety. */
-  function handleKeyDown(event: React.KeyboardEvent, index: number) {
-    const delta = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
-    if (delta === 0) return;
+  const handleKeyDown = (event: React.KeyboardEvent, index: number) => {
+    const next = nextIndexForArrowKey(event.key, index, TABS.length);
+    if (next === null) return;
 
     event.preventDefault();
-    const next = (index + delta + TABS.length) % TABS.length;
     const tab = TABS[next];
     if (tab) {
       onChange(tab.id);
       refs.current[next]?.focus();
     }
-  }
+  };
 
   return (
     <div className="recipe-tabs" role="tablist" aria-label="Recipe type">
@@ -57,4 +57,4 @@ export function RecipeTabs({ activeTab, panelId, onChange }: Props) {
       })}
     </div>
   );
-}
+};

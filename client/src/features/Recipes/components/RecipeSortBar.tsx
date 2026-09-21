@@ -15,10 +15,10 @@ const SORT_OPTIONS: { value: SortBy; label: string }[] = [
   { value: 'ingredientCount', label: 'Ingredient count' },
 ];
 
-export function RecipeSortBar({ filters, totalCount, unit, onToggleUnit, onChange }: Props) {
-  function toggleOrder() {
+export const RecipeSortBar = ({ filters, totalCount, unit, onToggleUnit, onChange }: Props) => {
+  const toggleOrder = () => {
     onChange('sortOrder', filters.sortOrder === 'asc' ? 'desc' : 'asc');
-  }
+  };
 
   return (
     <div className="sort-bar">
@@ -50,4 +50,4 @@ export function RecipeSortBar({ filters, totalCount, unit, onToggleUnit, onChang
       </div>
     </div>
   );
-}
+};

@@ -30,7 +30,7 @@ interface Props {
   tab: RecipeTab;
 }
 
-export function RecipesPage({ tab }: Props) {
+export const RecipesPage = ({ tab }: Props) => {
   const isMocktail = tab === 'mocktail';
   const navigate = useNavigate();
   const location = useLocation();
@@ -91,9 +91,9 @@ export function RecipesPage({ tab }: Props) {
             ? 'Failed to save rating.'
             : null;
 
-  async function handleClassifyIngredients(results: { name: string; isAlcoholic: boolean }[]) {
+  const handleClassifyIngredients = async (results: { name: string; isAlcoholic: boolean }[]) => {
     await Promise.all(results.map((r) => classifyIngredient.mutateAsync(r)));
-  }
+  };
 
   return (
     <div className="recipes-root">
@@ -193,4 +193,4 @@ export function RecipesPage({ tab }: Props) {
       )}
     </div>
   );
-}
+};

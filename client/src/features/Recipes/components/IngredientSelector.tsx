@@ -13,14 +13,14 @@ interface Props {
   onChange: (values: string[]) => void;
 }
 
-export function IngredientSelector({
+export const IngredientSelector = ({
   label,
   knownIngredients,
   selected,
   hideAlcoholic = false,
   unavailable = [],
   onChange,
-}: Props) {
+}: Props) => {
   const [search, setSearch] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -66,9 +66,9 @@ export function IngredientSelector({
     onClose: close,
   });
 
-  function remove(index: number) {
+  const remove = (index: number) => {
     onChange(selected.filter((_, i) => i !== index));
-  }
+  };
 
   return (
     <div className="filter-group">
@@ -145,4 +145,4 @@ export function IngredientSelector({
       </div>
     </div>
   );
-}
+};

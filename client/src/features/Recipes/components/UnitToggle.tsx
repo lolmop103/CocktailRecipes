@@ -5,7 +5,7 @@ interface Props {
   onToggle: () => void;
 }
 
-export function UnitToggle({ unit, onToggle }: Props) {
+export const UnitToggle = ({ unit, onToggle }: Props) => {
   return (
     <div className="unit-toggle" role="group" aria-label="Amount unit">
       <button
@@ -26,4 +26,4 @@ export function UnitToggle({ unit, onToggle }: Props) {
       </button>
     </div>
   );
-}
+};
