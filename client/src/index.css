@@ -7,23 +7,78 @@
 }
 
 :root {
-  --bg: #0d0f14;
-  --surface: rgba(255, 255, 255, 0.04);
-  --surface-hover: rgba(255, 255, 255, 0.07);
-  --border: rgba(255, 255, 255, 0.08);
-  --accent: #00e5ff;
-  --accent-dim: rgba(0, 229, 255, 0.18);
-  --accent-glow: 0 0 16px rgba(0, 229, 255, 0.35);
-  --text: #e8eaf0;
-  --muted: #7a8094;
-  --radius: 6px;
-  --radius-lg: 10px;
-  --shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
-  color-scheme: dark;
-  font-family: 'Inter', system-ui, sans-serif;
-  font-size: 15px;
-  color: var(--text);
-  background: var(--bg);
+  /* ---------------------------------------------------------------------
+     A bartender's notebook: ruled paper, ink, a bitters-red margin rule.
+     Every value below comes from that brief rather than a default palette.
+     Contrast is measured, not eyeballed — the ratios are noted inline.
+     --------------------------------------------------------------------- */
+
+  /* Paper. Two weights: the page, and a fresher sheet for cards. */
+  --paper: #f4f0e6;
+  --paper-raised: #fbf8f1;
+  --paper-sunk: #ebe6d9;
+
+  /* Ink. Blue-black, the way a fountain pen actually dries. */
+  --ink: #1e2a32; /* 12.88:1 on paper */
+  --ink-soft: #5c6670; /* 5.14:1 — meta, secondary */
+  --ink-faint: #73787f; /* 3.91:1 — empty states, disabled marks */
+
+  /* The ruled line, and the printed margin rule down the page. */
+  --rule: #d8d0be;
+  --rule-strong: #c4b9a1;
+
+  /* Bitters. The one saturated colour, used where something is chosen. */
+  --accent: #9a2f28; /* 6.56:1 on paper */
+  --accent-wash: rgba(154, 47, 40, 0.09);
+
+  /* A rating is a mark in the margin, so it carries its own ink. */
+  --star: #b07a1e; /* 3.27:1 */
+  --star-empty: #73787f; /* 3.91:1 */
+
+  --radius: 3px;
+  --radius-lg: 5px;
+
+  /* Elevation is a real offset and a soft blur — paper lifting off paper,
+     never a coloured halo. */
+  --shadow: 0 1px 2px rgba(30, 42, 50, 0.08), 0 2px 8px rgba(30, 42, 50, 0.06);
+  --shadow-lifted: 0 2px 4px rgba(30, 42, 50, 0.1), 0 8px 24px rgba(30, 42, 50, 0.12);
+
+  /* Type ramp: six steps, each ~1.25x the last above the functional floor.
+     Previously eighteen ad-hoc sizes, five of them within 0.06rem. */
+  --t-xs: 0.75rem; /* 12px — the functional floor */
+  --t-sm: 0.875rem; /* 14px */
+  --t-base: 1rem; /* 16px */
+  --t-md: 1.25rem; /* 20px */
+  --t-lg: 1.5625rem; /* 25px */
+  --t-xl: 1.9531rem; /* 31px */
+
+  color-scheme: light;
+
+  /* A text face with its own character. Charter and Iowan Old Style ship
+     with macOS and most Office installs; the stack degrades to Georgia. */
+  --font-text: Charter, 'Bitstream Charter', 'Iowan Old Style', 'Palatino Linotype', Georgia, serif;
+  /* Measurements are set apart, the way they are in a written recipe. */
+  --font-measure: ui-monospace, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  font-family: var(--font-text);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink);
+  background: var(--paper);
+}
+
+body {
+  margin: 0;
+  /* Ruled paper. The lines are the surface, not decoration laid on top. */
+  background-color: var(--paper);
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 31px,
+    var(--rule) 31px,
+    var(--rule) 32px
+  );
+  line-height: 1.6;
 }
 
 /* Scrollbar */
@@ -34,36 +89,37 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: var(--rule);
   border-radius: 3px;
 }
 
 /* Force all <select> elements to use a solid dark background so the
    browser UA stylesheet cannot bleed through with its white default. */
 select {
-  background-color: #1c1f27;
-  color: var(--text);
+  background-color: var(--paper-raised);
+  color: var(--ink);
 }
 
 /* â”€â”€ App header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .app-header {
   padding: 1rem 1.5rem;
-  border-bottom: 1px solid var(--border);
-  background: rgba(13, 15, 20, 0.8);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--rule-strong);
+  background: var(--paper);
   position: sticky;
   top: 0;
   z-index: 10;
 }
 .app-header h1 {
-  font-size: 1.4rem;
+  font-size: var(--t-lg);
   font-weight: 700;
-  letter-spacing: 0.02em;
-  background: linear-gradient(135deg, var(--accent) 0%, #0077cc 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  margin: 0;
+}
+
+.app-header h1 a {
+  color: inherit;
+  text-decoration: none;
 }
 
 /* â”€â”€ Layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -71,6 +127,12 @@ select {
   display: grid;
   grid-template-columns: 300px 1fr;
   flex: 1;
+}
+
+/* A grid child defaults to min-width: auto and refuses to shrink below its
+   content, which pushed the inputs and the sort bar off narrow viewports. */
+.recipes-layout > * {
+  min-width: 0;
 }
 
 /* -- Tabs ------------------------------- */
@@ -81,9 +143,8 @@ select {
 }
 .recipe-tabs {
   display: flex;
-  border-bottom: 2px solid var(--border);
-  background: rgba(13, 15, 20, 0.8);
-  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--rule-strong);
+  background: var(--paper);
 }
 .recipe-tab {
   padding: 0.75rem 1.5rem;
@@ -91,8 +152,8 @@ select {
   border: none;
   border-bottom: 2px solid transparent;
   margin-bottom: -2px;
-  color: var(--muted);
-  font-size: 0.95rem;
+  color: var(--ink-soft);
+  font-size: var(--t-base);
   font-weight: 600;
   cursor: pointer;
   transition:
@@ -101,7 +162,7 @@ select {
   letter-spacing: 0.02em;
 }
 .recipe-tab:hover {
-  color: var(--text);
+  color: var(--ink);
 }
 .recipe-tab--active {
   color: var(--accent);
@@ -111,10 +172,9 @@ select {
 /* â”€â”€ Sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .recipe-filters {
   padding: 1.25rem;
-  border-right: 1px solid var(--border);
-  background: rgba(13, 15, 20, 0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  /* The margin of the page: the ruled edge a bartender writes beside. */
+  border-right: 2px solid var(--accent-wash);
+  background: var(--paper-sunk);
   display: flex;
   flex-direction: column;
   gap: 1.4rem;
@@ -126,17 +186,17 @@ select {
   justify-content: space-between;
 }
 .filters-header h2 {
-  font-size: 0.95rem;
+  font-size: var(--t-base);
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--accent);
 }
 .btn-reset {
-  font-size: 0.78rem;
-  color: var(--muted);
+  font-size: var(--t-xs);
+  color: var(--ink-soft);
   background: none;
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
   padding: 0.2rem 0.6rem;
   cursor: pointer;
@@ -145,8 +205,8 @@ select {
     border-color 0.15s;
 }
 .btn-reset:hover {
-  color: var(--text);
-  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--ink);
+  border-color: var(--rule-strong);
 }
 
 /* Filter groups */
@@ -156,9 +216,9 @@ select {
   gap: 0.45rem;
 }
 .filter-label {
-  font-size: 0.75rem;
+  font-size: var(--t-xs);
   font-weight: 600;
-  color: var(--muted);
+  color: var(--ink-soft);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -166,11 +226,11 @@ select {
 .filter-group input[type='text'],
 .filter-group select {
   padding: 0.5rem 0.7rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
-  background: #1c1f27;
-  color: var(--text);
-  font-size: 0.9rem;
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-size: var(--t-sm);
   width: 100%;
   transition:
     border-color 0.15s,
@@ -189,7 +249,7 @@ select {
 .filter-group input:focus,
 .filter-group select:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-dim);
+  box-shadow: 0 0 0 2px var(--accent-wash);
 }
 
 /* Ingredient chips */
@@ -204,10 +264,10 @@ select {
   align-items: center;
   gap: 0.3rem;
   padding: 0.2rem 0.55rem;
-  background: var(--accent-dim);
-  border: 1px solid rgba(0, 229, 255, 0.3);
+  background: var(--accent-wash);
+  border: 1px solid var(--accent-wash);
   border-radius: 999px;
-  font-size: 0.78rem;
+  font-size: var(--t-xs);
   color: var(--accent);
 }
 .chip__name {
@@ -218,7 +278,7 @@ select {
   border: none;
   color: inherit;
   cursor: pointer;
-  font-size: 1rem;
+  font-size: var(--t-base);
   line-height: 1;
   padding: 0;
   opacity: 0.7;
@@ -234,11 +294,11 @@ select {
 }
 .ingredient-combobox__input {
   padding: 0.5rem 0.7rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
-  background: var(--surface);
-  color: var(--text);
-  font-size: 0.9rem;
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-size: var(--t-sm);
   width: 100%;
   transition:
     border-color 0.15s,
@@ -246,21 +306,21 @@ select {
   outline: none;
 }
 .ingredient-combobox__input::placeholder {
-  color: var(--muted);
+  color: var(--ink-soft);
 }
 .ingredient-combobox__input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-dim);
+  box-shadow: 0 0 0 2px var(--accent-wash);
 }
 .ingredient-dropdown {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  background: #161921;
-  border: 1px solid rgba(0, 229, 255, 0.25);
+  background: var(--paper-raised);
+  border: 1px solid var(--accent-wash);
   border-radius: var(--radius);
-  box-shadow: var(--shadow), var(--accent-glow);
+  box-shadow: var(--shadow);
   list-style: none;
   max-height: 180px;
   overflow-y: auto;
@@ -273,21 +333,21 @@ select {
   text-align: left;
   background: none;
   border: none;
-  color: var(--text);
-  font-size: 0.9rem;
+  color: var(--ink);
+  font-size: var(--t-sm);
   cursor: pointer;
   transition:
     background 0.1s,
     color 0.1s;
 }
 .ingredient-dropdown li button:hover {
-  background: var(--accent-dim);
+  background: var(--accent-wash);
   color: var(--accent);
 }
 .ingredient-dropdown--empty {
   padding: 0.6rem 0.75rem;
-  font-size: 0.85rem;
-  color: var(--muted);
+  font-size: var(--t-sm);
+  color: var(--ink-soft);
   list-style: none;
 }
 
@@ -299,8 +359,8 @@ select {
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  font-size: 0.85rem;
-  color: var(--text);
+  font-size: var(--t-sm);
+  color: var(--ink);
   cursor: pointer;
   user-select: none;
 }
@@ -321,8 +381,8 @@ select {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 1.2rem;
-  color: rgba(255, 255, 255, 0.2);
+  font-size: var(--t-md);
+  color: var(--rule-strong);
   padding: 0;
   line-height: 1;
   transition:
@@ -330,24 +390,24 @@ select {
     transform 0.1s;
 }
 .star-filter__star--active {
-  color: #f0c040;
+  color: var(--star);
 }
 .star-filter__star:hover {
-  color: #f0c040;
+  color: var(--star);
   transform: scale(1.15);
 }
 .star-filter__clear {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 0.75rem;
-  color: var(--muted);
+  font-size: var(--t-xs);
+  color: var(--ink-soft);
   padding: 0 0.25rem;
   line-height: 1;
   transition: color 0.1s;
 }
 .star-filter__clear:hover {
-  color: var(--text);
+  color: var(--ink);
 }
 
 /* â”€â”€ Sort bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -358,20 +418,22 @@ select {
   gap: 1rem;
 }
 .sort-bar {
+  flex-wrap: wrap;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
   padding: 0.6rem 1rem;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
   border-radius: var(--radius-lg);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
 .result-count {
-  font-size: 0.875rem;
-  color: var(--muted);
+  font-size: var(--t-sm);
+  color: var(--ink-soft);
 }
 .sort-controls {
   display: flex;
@@ -379,16 +441,16 @@ select {
   gap: 0.5rem;
 }
 .sort-controls label {
-  font-size: 0.82rem;
-  color: var(--muted);
+  font-size: var(--t-sm);
+  color: var(--ink-soft);
 }
 .sort-controls select {
   padding: 0.3rem 0.5rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
-  font-size: 0.85rem;
-  background: #1c1f27;
-  color: var(--text);
+  font-size: var(--t-sm);
+  background: var(--paper-raised);
+  color: var(--ink);
   outline: none;
   transition: border-color 0.15s;
 }
@@ -396,14 +458,14 @@ select {
   border-color: var(--accent);
 }
 .btn-order {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
   width: 30px;
   height: 30px;
   cursor: pointer;
-  font-size: 1rem;
-  color: var(--text);
+  font-size: var(--t-base);
+  color: var(--ink);
   transition:
     border-color 0.15s,
     color 0.15s;
@@ -416,7 +478,7 @@ select {
 /* Unit toggle (segmented pill) */
 .unit-toggle {
   display: flex;
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
   overflow: hidden;
 }
@@ -425,8 +487,8 @@ select {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 0.82rem;
-  color: var(--muted);
+  font-size: var(--t-sm);
+  color: var(--ink-soft);
   transition:
     background 0.15s,
     color 0.15s,
@@ -434,12 +496,12 @@ select {
   line-height: 1;
 }
 .unit-toggle__btn + .unit-toggle__btn {
-  border-left: 1px solid var(--border);
+  border-left: 1px solid var(--rule);
 }
 .unit-toggle__btn--active {
-  background: var(--accent-dim);
+  background: var(--accent-wash);
   color: var(--accent);
-  box-shadow: inset 0 0 8px rgba(0, 229, 255, 0.15);
+  box-shadow: inset 0 0 8px var(--accent-wash);
 }
 
 /* â”€â”€ Recipe grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -450,8 +512,8 @@ select {
 }
 
 .recipe-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
   border-radius: var(--radius-lg);
   padding: 1.1rem;
   backdrop-filter: blur(12px);
@@ -467,13 +529,13 @@ select {
 }
 .recipe-card:hover {
   transform: translateY(-2px);
-  border-color: rgba(0, 229, 255, 0.25);
+  border-color: var(--accent-wash);
   box-shadow:
     var(--shadow),
-    0 0 20px rgba(0, 229, 255, 0.08);
+    0 0 20px var(--accent-wash);
 }
 .recipe-card__name {
-  font-size: 1.05rem;
+  font-size: var(--t-base);
   font-weight: 600;
   letter-spacing: 0.01em;
 }
@@ -505,10 +567,10 @@ select {
   align-items: center;
   justify-content: center;
   background: none;
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
-  color: var(--muted);
-  font-size: 0.8rem;
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
   cursor: pointer;
   padding: 0;
   transition:
@@ -517,29 +579,29 @@ select {
     background 0.12s;
 }
 .btn-icon:hover {
-  color: var(--text);
-  border-color: rgba(255, 255, 255, 0.2);
-  background: var(--surface-hover);
+  color: var(--ink);
+  border-color: var(--rule-strong);
+  background: var(--paper-sunk);
 }
 .btn-icon--danger:hover {
-  color: #ff5555;
-  border-color: rgba(255, 85, 85, 0.4);
-  background: rgba(255, 85, 85, 0.08);
+  color: var(--accent);
+  border-color: var(--accent-wash);
+  background: var(--accent-wash);
 }
 
 .badge {
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
-  font-size: 0.73rem;
+  font-size: var(--t-xs);
   font-weight: 500;
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--muted);
-  border: 1px solid var(--border);
+  background: var(--paper-raised);
+  color: var(--ink-soft);
+  border: 1px solid var(--rule);
 }
 .badge--glass {
-  background: rgba(0, 229, 255, 0.07);
+  background: var(--accent-wash);
   color: var(--accent);
-  border-color: rgba(0, 229, 255, 0.18);
+  border-color: var(--accent-wash);
 }
 
 .recipe-card__ingredients {
@@ -551,23 +613,25 @@ select {
 .recipe-card__ingredients li {
   display: flex;
   gap: 0.5rem;
-  font-size: 0.88rem;
+  font-size: var(--t-sm);
 }
 .ingredient-amount {
+  font-family: var(--font-measure);
+  font-variant-numeric: tabular-nums;
   color: var(--accent);
   min-width: 52px;
   font-feature-settings: 'tnum';
 }
 .ingredient-name {
   font-weight: 500;
-  color: var(--text);
+  color: var(--ink);
 }
 
 .recipe-card__instructions {
-  font-size: 0.83rem;
-  color: var(--muted);
+  font-size: var(--t-sm);
+  color: var(--ink-soft);
   line-height: 1.55;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--rule);
   padding-top: 0.6rem;
 }
 
@@ -577,11 +641,11 @@ select {
   justify-content: space-between;
   margin-top: auto;
   padding-top: 0.5rem;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--rule);
 }
 .ingredient-count {
-  font-size: 0.78rem;
-  color: var(--muted);
+  font-size: var(--t-xs);
+  color: var(--ink-soft);
 }
 
 /* Star rating on card */
@@ -593,31 +657,31 @@ select {
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 1.1rem;
+  font-size: var(--t-md);
   line-height: 1;
   padding: 0;
-  color: rgba(255, 255, 255, 0.2);
+  color: var(--rule-strong);
   transition:
     color 0.1s,
     transform 0.1s;
 }
 .star--filled {
-  color: #f0c040;
+  color: var(--star);
 }
 .star:hover {
-  color: #f0c040;
+  color: var(--star);
   transform: scale(1.15);
 }
 
 /* Status messages */
 .status-msg {
-  color: var(--muted);
-  font-size: 0.95rem;
+  color: var(--ink-soft);
+  font-size: var(--t-base);
   padding: 3rem 0;
   text-align: center;
 }
 .status-msg--error {
-  color: #ff4e6a;
+  color: var(--accent);
 }
 
 /* â”€â”€ Responsive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
@@ -625,14 +689,36 @@ select {
   .recipes-layout {
     grid-template-columns: 1fr;
   }
+
+  /* On a narrow page the toolbar is a stack, not a row: the sort controls
+     and the new-recipe button each take the full width rather than
+     competing for it and pushing the document wider than the viewport. */
+  .recipes-main__toolbar {
+    align-items: stretch;
+  }
+
+  .sort-bar {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .btn-add-recipe {
+    width: 100%;
+  }
+
+  .recipe-filters,
+  .recipes-main {
+    padding: 1rem;
+  }
   .recipe-filters {
     border-right: none;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--rule);
   }
 }
 
 /* -- Toolbar (sort bar + add button) ---- */
 .recipes-main__toolbar {
+  flex-wrap: wrap;
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -642,10 +728,10 @@ select {
 }
 .btn-add-recipe {
   padding: 0.5rem 1rem;
-  background: linear-gradient(135deg, #00e5ff 0%, #0077cc 100%);
-  color: #0d0f14;
+  background: var(--accent);
+  color: var(--paper);
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: var(--t-sm);
   border: none;
   border-radius: var(--radius);
   cursor: pointer;
@@ -664,7 +750,7 @@ select {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(30, 42, 50, 0.45);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   display: flex;
@@ -676,16 +762,16 @@ select {
 .add-recipe-dialog {
   position: relative;
   padding: 0;
-  border: 1px solid rgba(0, 229, 255, 0.2);
+  border: 1px solid var(--accent-wash);
   border-radius: var(--radius-lg);
-  background: #12151d;
+  background: var(--paper-sunk);
   box-shadow:
-    0 24px 64px rgba(0, 0, 0, 0.7),
-    0 0 16px rgba(0, 229, 255, 0.35);
+    0 24px 64px rgba(30, 42, 50, 0.45),
+    0 0 16px var(--accent-wash);
   width: min(540px, 100%);
   max-height: 90vh;
   overflow-y: auto;
-  color: var(--text);
+  color: var(--ink);
 }
 .add-recipe-dialog__inner {
   padding: 1.5rem;
@@ -697,25 +783,22 @@ select {
   margin-bottom: 1.4rem;
 }
 .add-recipe-dialog__header h2 {
-  font-size: 1.15rem;
+  font-size: var(--t-md);
   font-weight: 700;
-  background: linear-gradient(135deg, #00e5ff 0%, #0077cc 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--ink);
 }
 .dialog-close {
   background: none;
   border: none;
-  color: var(--muted);
-  font-size: 1.4rem;
+  color: var(--ink-soft);
+  font-size: var(--t-lg);
   cursor: pointer;
   line-height: 1;
   padding: 0 0.2rem;
   transition: color 0.1s;
 }
 .dialog-close:hover {
-  color: var(--text);
+  color: var(--ink);
 }
 
 .add-recipe-dialog form {
@@ -730,9 +813,9 @@ select {
 }
 .form-field label,
 .form-field__label {
-  font-size: 0.78rem;
+  font-size: var(--t-xs);
   font-weight: 600;
-  color: var(--muted);
+  color: var(--ink-soft);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -745,11 +828,11 @@ select {
 .form-field textarea,
 .form-field select {
   padding: 0.5rem 0.7rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
-  background: #1c1f27;
-  color: var(--text);
-  font-size: 0.9rem;
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-size: var(--t-sm);
   font-family: inherit;
   outline: none;
   transition:
@@ -761,7 +844,7 @@ select {
 .form-field textarea:focus,
 .form-field select:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-dim);
+  box-shadow: 0 0 0 2px var(--accent-wash);
 }
 .form-field select {
   cursor: pointer;
@@ -769,7 +852,7 @@ select {
 }
 .form-field input::placeholder,
 .form-field textarea::placeholder {
-  color: var(--muted);
+  color: var(--ink-soft);
 }
 
 /* -- Tag pills ----------------------- */
@@ -782,11 +865,11 @@ select {
   display: inline-flex;
   align-items: center;
   padding: 0.25rem 0.65rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   border-radius: 999px;
-  font-size: 0.78rem;
+  font-size: var(--t-xs);
   cursor: pointer;
-  color: var(--muted);
+  color: var(--ink-soft);
   transition:
     border-color 0.12s,
     color 0.12s,
@@ -814,20 +897,20 @@ select {
   outline-offset: 2px;
 }
 .tag-pill:hover {
-  color: var(--text);
-  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--ink);
+  border-color: var(--rule-strong);
 }
 .tag-pill--active {
   border-color: var(--accent);
   color: var(--accent);
-  background: var(--accent-dim);
+  background: var(--accent-wash);
 }
 
 /* -- Recipe type toggle in form ------ */
 .form-type-toggle {
   display: flex;
   gap: 0;
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
   overflow: hidden;
   margin-bottom: 0.25rem;
@@ -837,8 +920,8 @@ select {
   padding: 0.45rem 0.75rem;
   background: none;
   border: none;
-  color: var(--muted);
-  font-size: 0.82rem;
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
   font-weight: 600;
   cursor: pointer;
   transition:
@@ -848,15 +931,15 @@ select {
   letter-spacing: 0.06em;
 }
 .form-type-btn + .form-type-btn {
-  border-left: 1px solid var(--border);
+  border-left: 1px solid var(--rule);
 }
 .form-type-btn--active {
-  background: var(--accent-dim);
+  background: var(--accent-wash);
   color: var(--accent);
 }
 
 .form-fieldset {
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
   padding: 0.75rem;
   display: flex;
@@ -864,9 +947,9 @@ select {
   gap: 0.5rem;
 }
 .form-fieldset legend {
-  font-size: 0.78rem;
+  font-size: var(--t-xs);
   font-weight: 600;
-  color: var(--muted);
+  color: var(--ink-soft);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   padding: 0 0.3rem;
@@ -879,11 +962,11 @@ select {
 }
 .ingredient-row input {
   padding: 0.45rem 0.6rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text);
-  font-size: 0.875rem;
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-size: var(--t-sm);
   outline: none;
   transition:
     border-color 0.15s,
@@ -891,23 +974,23 @@ select {
 }
 .ingredient-row input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-dim);
+  box-shadow: 0 0 0 2px var(--accent-wash);
 }
 .ingredient-row input::placeholder {
-  color: var(--muted);
+  color: var(--ink-soft);
 }
 .ingredient-row__amount {
   width: 90px;
 }
 .ingredient-row__remove {
   background: none;
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
-  color: var(--muted);
+  color: var(--ink-soft);
   width: 28px;
   height: 28px;
   cursor: pointer;
-  font-size: 1.1rem;
+  font-size: var(--t-md);
   line-height: 1;
   display: flex;
   align-items: center;
@@ -917,16 +1000,16 @@ select {
     border-color 0.1s;
 }
 .ingredient-row__remove:hover {
-  color: #ff4e6a;
-  border-color: #ff4e6a;
+  color: var(--accent);
+  border-color: var(--accent);
 }
 .btn-add-ingredient {
   align-self: flex-start;
   background: none;
-  border: 1px dashed var(--border);
+  border: 1px dashed var(--rule);
   border-radius: var(--radius);
-  color: var(--muted);
-  font-size: 0.82rem;
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
   padding: 0.3rem 0.75rem;
   cursor: pointer;
   transition:
@@ -939,10 +1022,10 @@ select {
 }
 
 .form-error {
-  font-size: 0.85rem;
-  color: #ff4e6a;
-  background: rgba(255, 78, 106, 0.1);
-  border: 1px solid rgba(255, 78, 106, 0.25);
+  font-size: var(--t-sm);
+  color: var(--accent);
+  background: var(--accent-wash);
+  border: 1px solid var(--accent-wash);
   border-radius: var(--radius);
   padding: 0.5rem 0.75rem;
 }
@@ -955,25 +1038,25 @@ select {
 .btn-secondary {
   padding: 0.5rem 1rem;
   background: none;
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
-  color: var(--muted);
-  font-size: 0.875rem;
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
   cursor: pointer;
   transition:
     color 0.15s,
     border-color 0.15s;
 }
 .btn-secondary:hover {
-  color: var(--text);
-  border-color: rgba(255, 255, 255, 0.2);
+  color: var(--ink);
+  border-color: var(--rule-strong);
 }
 .btn-primary {
   padding: 0.5rem 1.25rem;
-  background: linear-gradient(135deg, #00e5ff 0%, #0077cc 100%);
-  color: #0d0f14;
+  background: var(--accent);
+  color: var(--paper);
   font-weight: 700;
-  font-size: 0.875rem;
+  font-size: var(--t-sm);
   border: none;
   border-radius: var(--radius);
   cursor: pointer;
@@ -1000,11 +1083,11 @@ select {
 .ingredient-name-combobox input {
   width: 100%;
   padding: 0.45rem 0.55rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text);
-  font-size: 0.875rem;
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-size: var(--t-sm);
   outline: none;
   transition:
     border-color 0.15s,
@@ -1013,10 +1096,10 @@ select {
 }
 .ingredient-name-combobox input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-dim);
+  box-shadow: 0 0 0 2px var(--accent-wash);
 }
 .ingredient-name-combobox input::placeholder {
-  color: var(--muted);
+  color: var(--ink-soft);
 }
 /* Modal dropdown sits above dialog content */
 .ingredient-dropdown--modal {
@@ -1025,7 +1108,7 @@ select {
 .ingredient-row__amount-group {
   display: flex;
   gap: 0;
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
   overflow: hidden;
 }
@@ -1033,9 +1116,9 @@ select {
   width: 62px;
   padding: 0.45rem 0.4rem;
   border: none;
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--text);
-  font-size: 0.875rem;
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-size: var(--t-sm);
   outline: none;
   -moz-appearance: textfield;
 }
@@ -1045,15 +1128,15 @@ select {
   margin: 0;
 }
 .ingredient-row__amount:focus {
-  background: rgba(0, 229, 255, 0.05);
+  background: var(--accent-wash);
 }
 .unit-toggle--sm .unit-toggle__btn {
   padding: 0.25rem 0.45rem;
-  font-size: 0.78rem;
+  font-size: var(--t-xs);
 }
 .ingredient-row__amount-group .unit-toggle {
   border: none;
-  border-left: 1px solid var(--border);
+  border-left: 1px solid var(--rule);
   border-radius: 0;
 }
 
@@ -1067,8 +1150,8 @@ select {
   right: 0;
   background: none;
   border: none;
-  color: var(--muted);
-  font-size: 1rem;
+  color: var(--ink-soft);
+  font-size: var(--t-base);
   cursor: pointer;
   padding: 0 0.2rem;
   transition: color 0.12s;
@@ -1079,9 +1162,9 @@ select {
 
 /* -- Manage ingredients panel ---------- */
 .manage-ingredients-panel {
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
-  background: rgba(13, 15, 20, 0.9);
+  background: rgba(30, 42, 50, 0.35);
   padding: 0.75rem;
 }
 .manage-panel__header {
@@ -1104,40 +1187,37 @@ select {
 }
 .manage-row__name {
   flex: 1;
-  font-size: 0.82rem;
-  color: var(--text);
+  font-size: var(--t-sm);
+  color: var(--ink);
   min-width: 80px;
 }
 .manage-row__unset {
-  font-size: 0.78rem;
-  color: var(--muted);
+  font-size: var(--t-xs);
+  color: var(--ink-soft);
 }
 
 /* -- Classify modal --------------------- */
 .classify-modal {
-  background: #12151d;
-  border: 1px solid rgba(0, 229, 255, 0.2);
+  background: var(--paper-sunk);
+  border: 1px solid var(--accent-wash);
   border-radius: var(--radius-lg);
   padding: 1.5rem;
   width: min(480px, 95vw);
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 24px 64px rgba(30, 42, 50, 0.45);
 }
 .classify-modal__header {
   margin-bottom: 1rem;
 }
 .classify-modal__header h2 {
-  font-size: 1rem;
+  font-size: var(--t-base);
   font-weight: 700;
-  background: linear-gradient(135deg, #00e5ff 0%, #0077cc 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--ink);
 }
 .classify-modal__sub {
-  font-size: 0.82rem;
-  color: var(--muted);
+  font-size: var(--t-sm);
+  color: var(--ink-soft);
   margin-top: 0.25rem;
 }
 .classify-list {
@@ -1155,8 +1235,8 @@ select {
 }
 .classify-row__name {
   flex: 1;
-  font-size: 0.9rem;
-  color: var(--text);
+  font-size: var(--t-sm);
+  color: var(--ink);
   min-width: 80px;
 }
 .classify-modal__actions {
@@ -1173,9 +1253,9 @@ select {
 .classify-btn {
   padding: 0.22rem 0.6rem;
   background: none;
-  border: 1px solid var(--border);
-  color: var(--muted);
-  font-size: 0.75rem;
+  border: 1px solid var(--rule);
+  color: var(--ink-soft);
+  font-size: var(--t-xs);
   cursor: pointer;
   transition:
     color 0.12s,
@@ -1190,7 +1270,7 @@ select {
   margin-left: -1px;
 }
 .classify-btn--active {
-  background: var(--accent-dim);
+  background: var(--accent-wash);
   color: var(--accent);
   border-color: var(--accent);
 }
@@ -1212,10 +1292,10 @@ select {
 }
 .collection-picker__trigger {
   background: none;
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
-  color: var(--muted);
-  font-size: 0.9rem;
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
   padding: 0.2rem 0.4rem;
   cursor: pointer;
   transition:
@@ -1232,16 +1312,16 @@ select {
   bottom: calc(100% + 6px);
   right: 0;
   z-index: 30;
-  background: #12151d;
-  border: 1px solid rgba(0, 229, 255, 0.2);
+  background: var(--paper-sunk);
+  border: 1px solid var(--accent-wash);
   border-radius: var(--radius);
   padding: 0.5rem;
   min-width: 180px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 8px 24px rgba(30, 42, 50, 0.12);
 }
 .collection-picker__empty {
-  font-size: 0.8rem;
-  color: var(--muted);
+  font-size: var(--t-sm);
+  color: var(--ink-soft);
   padding: 0.25rem 0;
 }
 .collection-picker__list {
@@ -1252,8 +1332,8 @@ select {
   align-items: center;
   gap: 0.5rem;
   padding: 0.3rem 0.2rem;
-  font-size: 0.82rem;
-  color: var(--text);
+  font-size: var(--t-sm);
+  color: var(--ink);
   cursor: pointer;
 }
 .collection-picker__item:hover {
@@ -1268,16 +1348,16 @@ select {
   gap: 0.35rem;
   margin-top: 0.5rem;
   padding-top: 0.5rem;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--rule);
 }
 .collection-picker__new input {
   flex: 1;
   padding: 0.3rem 0.5rem;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border);
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
-  color: var(--text);
-  font-size: 0.8rem;
+  color: var(--ink);
+  font-size: var(--t-sm);
   outline: none;
 }
 .collection-picker__new input:focus {
@@ -1285,17 +1365,17 @@ select {
 }
 .collection-picker__new .btn-primary {
   padding: 0.3rem 0.6rem;
-  font-size: 0.8rem;
+  font-size: var(--t-sm);
 }
 
 /* -- Filter sidebar collection select -- */
 .recipe-filters select {
   padding: 0.4rem 0.6rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--rule);
   border-radius: var(--radius);
-  background: #1c1f27;
-  color: var(--text);
-  font-size: 0.875rem;
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-size: var(--t-sm);
   outline: none;
   cursor: pointer;
   width: 100%;
@@ -1309,7 +1389,7 @@ select {
 }
 .recipe-filters select:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-dim);
+  box-shadow: 0 0 0 2px var(--accent-wash);
 }
 
 /* ===========================================================================
@@ -1326,22 +1406,22 @@ select {
   border-radius: var(--radius);
 }
 
-/* Buttons carry the ring plus a glow so it reads against dark surfaces. */
+/* The ring alone. A coloured halo behind it was the tell this replaces. */
 :where(button):focus-visible {
-  box-shadow: var(--accent-glow);
+  outline-offset: 3px;
 }
 
 /* Keyboard highlight for the active option in a combobox listbox. */
 .ingredient-dropdown li.is-active,
 .ingredient-dropdown li:hover {
-  background: var(--accent-dim);
-  color: var(--text);
+  background: var(--accent-wash);
+  color: var(--ink);
 }
 
 .ingredient-dropdown li {
   cursor: pointer;
   padding: 0.45rem 0.6rem;
-  font-size: 0.85rem;
+  font-size: var(--t-sm);
 }
 
 /* A disabled primary action must not look clickable. */
@@ -1357,20 +1437,20 @@ select {
   max-width: 32rem;
   padding: 1.5rem;
   text-align: center;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
   border-radius: var(--radius-lg);
 }
 
 .error-boundary h2 {
   margin: 0 0 0.5rem;
-  font-size: 1.1rem;
+  font-size: var(--t-md);
 }
 
 .error-boundary p {
   margin: 0 0 1rem;
-  color: var(--muted);
-  font-size: 0.9rem;
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
 }
 
 /* Respect a reduced-motion preference: keep state changes, drop the movement. */
