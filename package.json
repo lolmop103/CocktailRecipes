@@ -20,9 +20,11 @@
     "format:check": "prettier --check .",
     "knip": "knip",
     "verify": "npm run format:check && npm run lint && npm run typecheck && npm run knip && npm run test:coverage",
-    "test:coverage": "npm run test:coverage --workspace=server && npm run test:coverage --workspace=client"
+    "test:coverage": "npm run test:coverage --workspace=server && npm run test:coverage --workspace=client",
+    "e2e": "playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "concurrently": "^8.2.2",
     "knip": "^6.37.0",
     "prettier": "^3.9.7"
