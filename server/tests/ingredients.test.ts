@@ -31,7 +31,7 @@ describe('GET /api/ingredients', () => {
   it('returns_resultsSortedByName', async () => {
     const res = await request(app).get('/api/ingredients');
     const names: string[] = res.body.map((i: { name: string }) => i.name);
-    const sorted = [...names].sort((a, b) => a.localeCompare(b));
+    const sorted = names.toSorted((a, b) => a.localeCompare(b));
     expect(names).toEqual(sorted);
   });
 });

@@ -166,7 +166,7 @@ describe('sort', () => {
     const result = recipeStore.query({ sortBy: 'rating', sortOrder: 'desc' });
 
     expect(result[0]?.rating).toBe(5);
-    expect(result[result.length - 1]?.rating).toBeUndefined();
+    expect(result.at(-1)?.rating).toBeUndefined();
   });
 
   it('sortBy_rating_asc_treatsUnratedAsLowest', () => {
@@ -174,7 +174,7 @@ describe('sort', () => {
 
     // Ascending is worst-first, and an unjudged recipe sorts below a bad one.
     expect(result[0]?.rating).toBeUndefined();
-    expect(result[result.length - 1]?.rating).toBe(5);
+    expect(result.at(-1)?.rating).toBe(5);
   });
 
   it('sortBy_rating_tiesBreakByNameAscending_inBothDirections', () => {
@@ -190,7 +190,7 @@ describe('sort', () => {
     const result = recipeStore.query({ sortBy: 'ingredientCount', sortOrder: 'asc' });
 
     expect(result[0]?.ingredients).toHaveLength(3);
-    expect(result[result.length - 1]?.ingredients).toHaveLength(5);
+    expect(result.at(-1)?.ingredients).toHaveLength(5);
   });
 
   it('sortBy_ingredientCount_desc_mostFirst', () => {

@@ -1,5 +1,6 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
+import e18e from '@e18e/eslint-plugin';
 import reactHooks from 'eslint-plugin-react-hooks';
 import jsxA11y from 'eslint-plugin-jsx-a11y';
 import globals from 'globals';
@@ -10,6 +11,17 @@ export default tseslint.config(
 
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
+
+  // e18e (ecosystem performance): modernisation, module-replacement and
+  // performance rules. Recommended set, applied to every workspace.
+  e18e.configs.recommended,
+  {
+    rules: {
+      // e18e/prefer-spread-syntax covers everything core prefer-spread does
+      // (and more), so the core rule would only duplicate its reports.
+      'prefer-spread': 'off',
+    },
+  },
 
   {
     languageOptions: {
@@ -63,6 +75,10 @@ export default tseslint.config(
       'vitest/no-identical-title': 'error',
       'vitest/valid-expect': 'error',
       'vitest/no-standalone-expect': 'error',
+
+      // A test runs once; hoisting `getByRole('button', { name: /save/i })`
+      // patterns to module scope would hurt readability for no gain.
+      'e18e/prefer-static-regex': 'off',
 
       // Testing Library queries and mocks are loosely typed by nature.
       '@typescript-eslint/no-unsafe-assignment': 'off',

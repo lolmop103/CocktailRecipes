@@ -38,7 +38,7 @@ describe('IngredientSelector keyboard navigation', () => {
     fireEvent.keyDown(input, { key: 'ArrowUp' });
 
     const options = screen.getAllByRole('option');
-    expect(options[options.length - 1]).toHaveAttribute('aria-selected', 'true');
+    expect(options.at(-1)).toHaveAttribute('aria-selected', 'true');
   });
 
   it('selects_highlightedOption_onEnter', () => {

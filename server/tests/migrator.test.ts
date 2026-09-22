@@ -65,7 +65,7 @@ describe('migrate', () => {
     migrate(db);
 
     // Pretend the newest migration had not run yet.
-    const newest = MIGRATIONS[MIGRATIONS.length - 1]!;
+    const newest = MIGRATIONS.at(-1)!;
     db.prepare('DELETE FROM schema_migrations WHERE version = ?').run(newest.version);
     db.exec('DROP TABLE collection_recipes');
     db.exec(`CREATE TABLE collection_recipes (
@@ -83,7 +83,7 @@ describe('migrate', () => {
     const versions = MIGRATIONS.map((m) => m.version);
 
     expect(new Set(versions).size).toBe(versions.length);
-    expect([...versions].sort((a, b) => a - b)).toEqual(versions);
+    expect(versions.toSorted((a, b) => a - b)).toEqual(versions);
   });
 });
 

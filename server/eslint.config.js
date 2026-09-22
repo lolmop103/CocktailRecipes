@@ -1,5 +1,6 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
+import e18e from '@e18e/eslint-plugin';
 import globals from 'globals';
 import vitest from '@vitest/eslint-plugin';
 
@@ -8,6 +9,20 @@ export default tseslint.config(
 
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
+
+  // e18e (ecosystem performance): modernisation, module-replacement and
+  // performance rules. Recommended set, applied to every workspace.
+  e18e.configs.recommended,
+  {
+    rules: {
+      // e18e/prefer-spread-syntax covers everything core prefer-spread does
+      // (and more), so the core rule would only duplicate its reports.
+      'prefer-spread': 'off',
+      // Express is a deliberate choice for this project; e18e's suggested
+      // replacement (h3) is a framework migration, not a lint fix.
+      'e18e/ban-dependencies': ['error', { allowed: ['express'] }],
+    },
+  },
 
   {
     languageOptions: {
@@ -60,6 +75,10 @@ export default tseslint.config(
       'vitest/no-identical-title': 'error',
       'vitest/valid-expect': 'error',
       'vitest/no-standalone-expect': 'error',
+
+      // A test runs once; hoisting `getByRole('button', { name: /save/i })`
+      // patterns to module scope would hurt readability for no gain.
+      'e18e/prefer-static-regex': 'off',
 
       // Supertest response bodies are `any` by nature.
       '@typescript-eslint/no-unsafe-assignment': 'off',

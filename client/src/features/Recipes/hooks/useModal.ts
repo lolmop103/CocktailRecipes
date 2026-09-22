@@ -50,13 +50,13 @@ export function useModal(dialogRef: RefObject<HTMLElement | null>, onClose: () =
 
       if (event.key !== 'Tab' || !dialogRef.current) return;
 
-      const focusable = Array.from(
-        dialogRef.current.querySelectorAll<HTMLElement>(FOCUSABLE),
-      ).filter((el) => isFocusable(el) || el === document.activeElement);
+      const focusable = [...dialogRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(
+        (el) => isFocusable(el) || el === document.activeElement,
+      );
       if (focusable.length === 0) return;
 
       const first = focusable[0] as HTMLElement;
-      const last = focusable[focusable.length - 1] as HTMLElement;
+      const last = focusable.at(-1) as HTMLElement;
 
       if (event.shiftKey && document.activeElement === first) {
         event.preventDefault();

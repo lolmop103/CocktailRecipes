@@ -1,6 +1,5 @@
 # AGENT.md — Cocktail Project
 
-Protocol: aop-optimised · Bootstrap: aop-scaffold
 Stack: Node.js · Express 5 · React 19 · TypeScript 5 · Vite 8 · Vitest 5 · Playwright
 
 ---
@@ -19,7 +18,7 @@ Stack: Node.js · Express 5 · React 19 · TypeScript 5 · Vite 8 · Vitest 5 ·
 | Testing    | Vitest                  | ^5      |
 | Test UI    | React Testing Library   | ^16     |
 | E2E        | Playwright (Chromium)   | ^1.63   |
-| Linting    | ESLint                  | ^9      |
+| Linting    | ESLint + @e18e plugin   | ^9      |
 | Formatting | Prettier                | ^3      |
 | Database   | SQLite (better-sqlite3) | ^12     |
 
