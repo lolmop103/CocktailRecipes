@@ -1,4 +1,4 @@
-# Cocktail
+# Cocktail Recipes
 
 [![CI](https://github.com/lolmop103/CocktailRecipes/actions/workflows/ci.yml/badge.svg)](https://github.com/lolmop103/CocktailRecipes/actions/workflows/ci.yml)
 
