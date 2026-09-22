@@ -139,3 +139,15 @@ describe('migration 004 — collection_recipes foreign key', () => {
     expect(rows.map((r) => r.recipe_id)).toEqual(['10']);
   });
 });
+
+describe('migrate — foreign key pragma', () => {
+  it('leavesForeignKeysOff_whenTheyWereOff', () => {
+    const db = new Database(':memory:');
+    db.pragma('foreign_keys = OFF');
+
+    migrate(db);
+
+    expect(db.pragma('foreign_keys', { simple: true })).toBe(0);
+    expect(appliedVersions(db)).toHaveLength(MIGRATIONS.length);
+  });
+});

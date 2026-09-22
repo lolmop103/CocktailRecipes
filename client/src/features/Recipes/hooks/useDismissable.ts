@@ -5,7 +5,7 @@ import { useEffect, type RefObject } from 'react';
  * Pointer-only dismissal strands keyboard users inside an open dropdown.
  */
 export function useDismissable(
-  ref: RefObject<HTMLElement>,
+  ref: RefObject<HTMLElement | null>,
   isOpen: boolean,
   onDismiss: () => void,
 ): void {

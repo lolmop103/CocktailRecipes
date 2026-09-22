@@ -26,7 +26,7 @@ function isFocusable(el: HTMLElement): boolean {
  * `aria-modal="true"` is only a promise to assistive tech — without a real trap
  * the browser will happily tab into the page behind the dialog.
  */
-export function useModal(dialogRef: RefObject<HTMLElement>, onClose: () => void): void {
+export function useModal(dialogRef: RefObject<HTMLElement | null>, onClose: () => void): void {
   const previouslyFocused = useRef<HTMLElement | null>(null);
 
   useEffect(() => {

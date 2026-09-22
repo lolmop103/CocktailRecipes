@@ -41,7 +41,9 @@ export function createApp(): Express {
     const clientDist = resolve(process.cwd(), 'client', 'dist');
     if (existsSync(clientDist)) {
       app.use(express.static(clientDist));
-      app.get('*', (_req, res) => {
+      // Express 5 (path-to-regexp v8) no longer accepts a bare '*'; the
+      // wildcard must be named.
+      app.get('/{*splat}', (_req, res) => {
         res.sendFile(resolve(clientDist, 'index.html'));
       });
     }
