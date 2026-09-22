@@ -1,10 +1,11 @@
-import type { output, SafeParseReturnType, ZodError, ZodTypeAny } from 'zod';
+import type { z } from 'zod';
 import type { FieldError } from '@cocktail/shared';
 import { ValidationError } from './errors.js';
 
-function toFieldErrors(error: ZodError): FieldError[] {
+function toFieldErrors(error: z.ZodError): FieldError[] {
   return error.issues.map((issue) => ({
-    path: issue.path.join('.') || '(root)',
+    // zod 4 types paths as PropertyKey[], so symbols are possible in theory.
+    path: issue.path.map(String).join('.') || '(root)',
     message: issue.message,
   }));
 }
@@ -18,9 +19,8 @@ function toFieldErrors(error: ZodError): FieldError[] {
  * Keyed on the schema rather than a bare `T` so the result is the schema's
  * *output* type — otherwise `.default()` values are typed as still-optional.
  */
-export function parseOrThrow<S extends ZodTypeAny>(schema: S, input: unknown): output<S> {
-  // Annotated because `ZodTypeAny.safeParse` widens its payload to `any`.
-  const result: SafeParseReturnType<unknown, output<S>> = schema.safeParse(input);
+export function parseOrThrow<S extends z.ZodType>(schema: S, input: unknown): z.output<S> {
+  const result: z.ZodSafeParseResult<z.output<S>> = schema.safeParse(input);
   if (!result.success) {
     throw new ValidationError(toFieldErrors(result.error));
   }

@@ -1,7 +1,7 @@
 # AGENT.md — Cocktail Project
 
 Protocol: aop-optimised · Bootstrap: aop-scaffold
-Stack: Node.js · Express 4 · React 18 · TypeScript 5 · Vite · Vitest
+Stack: Node.js · Express 5 · React 19 · TypeScript 5 · Vite 8 · Vitest 5 · Playwright
 
 ---
 
@@ -10,12 +10,15 @@ Stack: Node.js · Express 4 · React 18 · TypeScript 5 · Vite · Vitest
 | Layer      | Technology              | Version |
 | ---------- | ----------------------- | ------- |
 | Runtime    | Node.js                 | ≥22 LTS |
-| Backend    | Express                 | ^4.18   |
-| Frontend   | React                   | ^18     |
-| Bundler    | Vite                    | ^5      |
+| Backend    | Express                 | ^5.2    |
+| Frontend   | React                   | ^19     |
+| Routing    | React Router            | ^7      |
+| Contract   | zod                     | ^4      |
+| Bundler    | Vite                    | ^8      |
 | Language   | TypeScript              | ^5      |
-| Testing    | Vitest                  | ^1      |
-| Test UI    | React Testing Library   | ^15     |
+| Testing    | Vitest                  | ^5      |
+| Test UI    | React Testing Library   | ^16     |
+| E2E        | Playwright (Chromium)   | ^1.63   |
 | Linting    | ESLint                  | ^9      |
 | Formatting | Prettier                | ^3      |
 | Database   | SQLite (better-sqlite3) | ^12     |
@@ -37,6 +40,7 @@ npm run format:check          # prettier --check . (CI gate)
 npm run knip                  # unused files, exports and dependencies
 npm run test:coverage         # tests + 80% coverage gate
 npm run verify                # format + lint + typecheck + knip + coverage
+npm run e2e                   # Playwright: builds, serves the prod bundle on :3100, drives Chromium
 
 # Server workspace
 cd server
@@ -70,6 +74,7 @@ npm run typecheck             # tsc --noEmit
 - **One component per file**: a helper used by a single parent still gets its own file. A nested `const Helper = …` above the export cannot be tested or reused without exporting the parent's internals.
 - **Logic out of components**: pure state transitions and validation live in a sibling `*Form.ts`; derivations live in `utils/`; cross-component behaviour lives in `hooks/`. Each gets a unit test. Event handlers that close over local state stay in the component — extracting those only threads dependencies through argument lists.
 - **Tests**: Vitest + React Testing Library. `Method_Scenario_Expected` naming. AAA structure. No `.only` or `.skip` in committed code — enforced by `vitest/no-disabled-tests` and `vitest/no-focused-tests`, not by review. Every test must assert (`vitest/expect-expect`).
+- **End-to-end**: Playwright specs live in `e2e/`, one user journey per file, and run against the production build with a throwaway database (`playwright.config.ts`). Select by role and label, never by CSS class, except for the `.result-count` readout. They are a CI job of their own and do not count toward Vitest coverage.
 - **Commits**: Conventional Commits `#{N}.{s}.T:summary`.
 - **Formatting**: Prettier + EditorConfig = law. No suppression directives.
 - **Linting**: ESLint 0 warnings. `no-console` on in production code. No `any` without `// eslint-disable` + justification.

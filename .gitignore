@@ -60,3 +60,11 @@ coverage/
 .github/skills/
 .github/agents/
 .github/release/
+
+# Agent bookkeeping — kept locally, never published
+tasks/
+kb/
+
+# Playwright
+playwright-report/
+test-results/

@@ -11,6 +11,15 @@ with the API contract defined once in a shared package and consumed by both.
 
 ![The recipe list: ruled paper, ingredient filters, and measurements set in monospace](docs/screenshot.png)
 
+The layout is desktop-first, and it also works on a phone: below 680px the filter
+panel stacks above the list, nothing scrolls sideways, and the primary action
+stays reachable. A Playwright test at iPhone width guards that.
+
+<img src="docs/screenshot-mobile.png" alt="The same view at phone width: tabs, stacked filters, sort bar and the New Recipe button" width="320">
+
+_The cards start below the first screen on a phone; the filters come first so that a_
+_small-screen user narrows the list before scrolling it._
+
 ## Prerequisites
 
 - Node.js ≥ 22 LTS
@@ -62,25 +71,25 @@ cocktail/
 │   │   ├── lib/             # TanStack Query client
 │   │   └── features/Recipes # Page, components, query hooks, services
 │   └── tests/
-├── tasks/                   # AOP task tracking
-├── kb/                      # AOP knowledge base
+├── e2e/                     # Playwright journeys against the production build
 └── AGENT.md                 # Project conventions & build commands
 ```
 
 ## Scripts
 
-| Command                 | Description                        |
-| ----------------------- | ---------------------------------- |
-| `npm run dev`           | Start all dev servers concurrently |
-| `npm run build`         | Build all workspaces               |
-| `npm run test`          | Run all tests                      |
-| `npm run lint`          | Lint all workspaces                |
-| `npm run typecheck`     | TypeScript check all workspaces    |
-| `npm run format`        | Format with Prettier               |
-| `npm run format:check`  | Verify formatting (CI gate)        |
-| `npm run knip`          | Find unused files, exports, deps   |
-| `npm run test:coverage` | Run tests and enforce 80% coverage |
-| `npm run verify`        | Everything CI runs, in one command |
+| Command                 | Description                         |
+| ----------------------- | ----------------------------------- |
+| `npm run dev`           | Start all dev servers concurrently  |
+| `npm run build`         | Build all workspaces                |
+| `npm run test`          | Run all tests                       |
+| `npm run lint`          | Lint all workspaces                 |
+| `npm run typecheck`     | TypeScript check all workspaces     |
+| `npm run format`        | Format with Prettier                |
+| `npm run format:check`  | Verify formatting (CI gate)         |
+| `npm run knip`          | Find unused files, exports, deps    |
+| `npm run test:coverage` | Run tests and enforce 80% coverage  |
+| `npm run verify`        | Everything CI runs, in one command  |
+| `npm run e2e`           | Playwright browser tests (Chromium) |
 
 ## Architecture notes
 
