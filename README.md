@@ -72,6 +72,7 @@ cocktail/
 │   │   └── features/Recipes # Page, components, query hooks, services
 │   └── tests/
 ├── e2e/                     # Playwright journeys against the production build
+├── AGENTS.md                # Development workflow and definition of done
 └── AGENT.md                 # Project conventions & build commands
 ```
 
@@ -129,7 +130,8 @@ unprivileged `node` user, and keeps the database on the `cocktail-db` volume at
 
 ## Contributing
 
-See [AGENT.md](AGENT.md) for conventions, commit format, and development workflow.
+See [AGENTS.md](AGENTS.md) for the development workflow and [AGENT.md](AGENT.md) for
+conventions, commands and commit format.
 
 ## License
 

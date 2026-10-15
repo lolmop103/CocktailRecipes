@@ -74,7 +74,7 @@ npm run typecheck             # tsc --noEmit
 - **Logic out of components**: pure state transitions and validation live in a sibling `*Form.ts`; derivations live in `utils/`; cross-component behaviour lives in `hooks/`. Each gets a unit test. Event handlers that close over local state stay in the component — extracting those only threads dependencies through argument lists.
 - **Tests**: Vitest + React Testing Library. `Method_Scenario_Expected` naming. AAA structure. No `.only` or `.skip` in committed code — enforced by `vitest/no-disabled-tests` and `vitest/no-focused-tests`, not by review. Every test must assert (`vitest/expect-expect`).
 - **End-to-end**: Playwright specs live in `e2e/`, one user journey per file, and run against the production build with a throwaway database (`playwright.config.ts`). Select by role and label, never by CSS class, except for the `.result-count` readout. They are a CI job of their own and do not count toward Vitest coverage.
-- **Commits**: Conventional Commits `#{N}.{s}.T:summary`.
+- **Commits**: Conventional Commits — `type(scope): summary`, e.g. `feat(server):`, `fix(client):`, `test(e2e):`, `docs:`, `chore:`.
 - **Formatting**: Prettier + EditorConfig = law. No suppression directives.
 - **Linting**: ESLint 0 warnings. `no-console` on in production code. No `any` without `// eslint-disable` + justification.
 - **Coverage**: 80% is a gate, not a suggestion — CI runs `test:coverage`, so a drop below it fails the build.
