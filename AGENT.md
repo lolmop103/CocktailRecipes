@@ -40,6 +40,7 @@ npm run knip                  # unused files, exports and dependencies
 npm run test:coverage         # tests + 80% coverage gate
 npm run verify                # format + lint + typecheck + knip + coverage
 npm run e2e                   # Playwright: builds, serves the prod bundle on :3100, drives Chromium
+npm run probe                 # read-path budget probe against the prod build (run npm run build first)
 
 # Server workspace
 cd server
