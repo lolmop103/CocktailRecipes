@@ -1,4 +1,10 @@
 import { z } from 'zod';
+import {
+  MAX_COLLECTION_ID_LENGTH,
+  MAX_FILTER_TERMS,
+  MAX_SEARCH_LENGTH,
+  MAX_TERM_LENGTH,
+} from '../limits.js';
 
 export const MIN_RATING = 1;
 export const MAX_RATING = 5;
@@ -53,24 +59,60 @@ export const ratingSchema = z.object({
   rating: z.number().int().min(MIN_RATING).max(MAX_RATING),
 });
 
-/** Filters as they travel over the wire: comma-separated lists, string booleans. */
+/** Splits a comma-separated list, trimming, dropping blanks and case-insensitive repeats. */
+function splitTerms(value: string): string[] {
+  const seen = new Set<string>();
+  const terms: string[] = [];
+  for (const raw of value.split(',')) {
+    const term = raw.trim();
+    const key = term.toLowerCase();
+    if (term !== '' && !seen.has(key)) {
+      seen.add(key);
+      terms.push(term);
+    }
+  }
+  return terms;
+}
+
+/**
+ * A comma-separated ingredient list, capped after de-duplication. The raw
+ * string is bounded first so the split itself cannot be made expensive.
+ */
+const termListParam = z
+  .string()
+  .max(MAX_FILTER_TERMS * (MAX_TERM_LENGTH + 1))
+  .transform(splitTerms)
+  .pipe(z.array(z.string().max(MAX_TERM_LENGTH)).max(MAX_FILTER_TERMS))
+  .default([]);
+
+const booleanParam = z
+  .enum(['true', 'false'])
+  .transform((value) => value === 'true')
+  .optional();
+
+/**
+ * Filters as they travel over the wire — comma-separated lists, string
+ * booleans — parsed into the shape the query runs on. Every field is bounded:
+ * a request over a limit is a 400, never a slow query.
+ */
 export const recipeQuerySchema = z.object({
-  search: z.string().optional(),
-  ingredients: z.string().optional(),
-  excludeIngredients: z.string().optional(),
-  onlySelectedIngredients: z.string().optional(),
+  search: z.string().max(MAX_SEARCH_LENGTH).optional(),
+  ingredients: termListParam,
+  excludeIngredients: termListParam,
+  onlySelectedIngredients: booleanParam,
   minRating: z.coerce.number().int().min(MIN_RATING).max(MAX_RATING).optional(),
   sortBy: z.enum(SORT_BY).optional(),
   sortOrder: z.enum(SORT_ORDER).optional(),
-  isMocktail: z.string().optional(),
-  collectionId: z.string().optional(),
+  isMocktail: booleanParam,
+  collectionId: z.string().regex(/^\d+$/).max(MAX_COLLECTION_ID_LENGTH).optional(),
 });
 
 export type Ingredient = z.infer<typeof ingredientSchema>;
 export type Recipe = z.infer<typeof recipeSchema>;
 export type CreateRecipeInput = z.infer<typeof createRecipeSchema>;
 export type UpdateRecipeInput = z.infer<typeof updateRecipeSchema>;
-export type RecipeQuery = z.infer<typeof recipeQuerySchema>;
+/** The parsed query: the filters plus the optional collection to scope them to. */
+export type RecipeQuery = z.output<typeof recipeQuerySchema>;
 export type SortBy = (typeof SORT_BY)[number];
 export type SortOrder = (typeof SORT_ORDER)[number];
 export type Unit = (typeof UNITS)[number];

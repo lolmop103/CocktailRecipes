@@ -1,41 +1,8 @@
-import type {
-  CreateRecipeInput,
-  Recipe,
-  RecipeFilters,
-  RecipeQuery,
-  UpdateRecipeInput,
-} from '@cocktail/shared';
+import type { CreateRecipeInput, Recipe, RecipeQuery, UpdateRecipeInput } from '@cocktail/shared';
 import { recipeStore } from '../data/recipeStore.js';
 import { ingredientMetaStore } from '../data/ingredientMetaStore.js';
 import { collectionStore } from '../data/collectionStore.js';
 import { NotFoundError } from '../lib/errors.js';
-
-// ---------------------------------------------------------------------------
-// Query translation
-// ---------------------------------------------------------------------------
-
-function splitList(value: string): string[] {
-  return value
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
-/** Turns the wire format (comma-separated lists, string booleans) into filters. */
-export function toFilters(query: RecipeQuery): RecipeFilters {
-  return {
-    ...(query.search !== undefined && { search: query.search }),
-    ...(query.ingredients !== undefined && { ingredients: splitList(query.ingredients) }),
-    ...(query.excludeIngredients !== undefined && {
-      excludeIngredients: splitList(query.excludeIngredients),
-    }),
-    ...(query.onlySelectedIngredients === 'true' && { onlySelectedIngredients: true }),
-    ...(query.minRating !== undefined && { minRating: query.minRating }),
-    ...(query.sortBy !== undefined && { sortBy: query.sortBy }),
-    ...(query.sortOrder !== undefined && { sortOrder: query.sortOrder }),
-    ...(query.isMocktail !== undefined && { isMocktail: query.isMocktail === 'true' }),
-  };
-}
 
 // ---------------------------------------------------------------------------
 // Use cases
@@ -49,8 +16,9 @@ function registerIngredients(recipe: Recipe): void {
 }
 
 export const recipeService = {
+  /** The schema has already split, de-duplicated and bounded every filter. */
   list(query: RecipeQuery): Recipe[] {
-    return recipeStore.query(toFilters(query), query.collectionId);
+    return recipeStore.query(query, query.collectionId);
   },
 
   getById(id: string): Recipe {

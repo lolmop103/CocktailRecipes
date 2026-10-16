@@ -11,6 +11,25 @@ beforeEach(() => {
 });
 
 describe('GET /api/recipes', () => {
+  /** "x0,x1,…" — n distinct ingredient terms. */
+  const terms = (n: number) => Array.from({ length: n }, (_, i) => `x${String(i)}`).join(',');
+  const SLOW_REQUEST_MS = 200;
+
+  it('get_repeatedSearchKey_returns400', async () => {
+    const res = await request(app).get('/api/recipes?search=a&search=b');
+
+    expect(res.status).toBe(400);
+  });
+
+  it('get_twentyOneExcludeTerms_returns400NotSlow', async () => {
+    const started = Date.now();
+
+    const res = await request(app).get(`/api/recipes?excludeIngredients=${terms(21)}`);
+
+    expect(res.status).toBe(400);
+    expect(Date.now() - started).toBeLessThan(SLOW_REQUEST_MS);
+  });
+
   it('returns_allRecipes_byDefault', async () => {
     const res = await request(app).get('/api/recipes');
     expect(res.status).toBe(200);
