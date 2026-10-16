@@ -204,4 +204,66 @@ describe('RecipesPage — infinite list', () => {
     expect(screen.getByText(/of 29 recipes/)).toBeInTheDocument();
     vi.unstubAllGlobals();
   });
+
+  it('RecipesPage_pageInFlight_observerDoesNotRequestAgain', async () => {
+    api.list.mockImplementation((_filters: unknown, offset: number) =>
+      offset === 0 ? Promise.resolve(page(range(0, 24), 30, 24)) : new Promise(() => undefined),
+    );
+    await renderPage();
+    observers.fire(true);
+    await waitFor(() => expect(api.list).toHaveBeenCalledTimes(2));
+
+    observers.fire(true);
+    observers.fire(true);
+
+    expect(api.list).toHaveBeenCalledTimes(2);
+  });
+
+  it('RecipesPage_afterAFailedPage_observerStops', async () => {
+    api.list.mockImplementation((_filters: unknown, offset: number) =>
+      offset === 0
+        ? Promise.resolve(page(range(0, 24), 30, 24))
+        : Promise.reject(new Error('down')),
+    );
+    await renderPage();
+    observers.fire(true);
+    await screen.findByRole('button', { name: 'Try again' });
+    const calls = api.list.mock.calls.length;
+
+    observers.fire(true);
+
+    expect(api.list).toHaveBeenCalledTimes(calls);
+  });
+
+  it('RecipesPage_deleteThenSentinelVisibleDuringRefetch_noStaleNextPage', async () => {
+    let deleted = false;
+    let finishRefetch: () => void = () => undefined;
+    api.list.mockImplementation((_filters: unknown, offset: number) => {
+      const all = range(deleted ? 1 : 0, 30);
+      const result = page(
+        all.slice(offset, offset + 24),
+        all.length,
+        offset + 24 < all.length ? offset + 24 : null,
+      );
+      if (!deleted) return Promise.resolve(result);
+      return new Promise<RecipePage>((resolve) => {
+        finishRefetch = () => resolve(result);
+      });
+    });
+    api.delete.mockImplementation(() => {
+      deleted = true;
+      return Promise.resolve();
+    });
+    vi.stubGlobal('confirm', () => true);
+    await renderPage();
+
+    fireEvent.click(screen.getByLabelText('Delete R0'));
+    await waitFor(() => expect(api.list.mock.calls.length).toBeGreaterThan(1));
+    observers.fire(true);
+
+    // Only the refetch of page 1 is in flight; no page was requested at the stale offset.
+    expect(api.list.mock.calls.map((call: unknown[]) => call[1] as number)).toEqual([0, 0]);
+    finishRefetch();
+    vi.unstubAllGlobals();
+  });
 });

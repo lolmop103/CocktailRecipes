@@ -24,7 +24,19 @@ export const LoadMore = ({ hasMore, isLoading, isError, onLoadMore }: Props) => 
   return (
     <div className="load-more">
       <div ref={sentinel} className="load-more__sentinel" aria-hidden="true" />
-      <button type="button" className="btn-load-more" disabled={isLoading} onClick={onLoadMore}>
+      {isError && (
+        <p role="status" className="load-more__status">
+          Could not load more recipes.
+        </p>
+      )}
+      {/* aria-disabled rather than disabled: a disabled button would drop
+          keyboard focus to the top of the page while the next page loads. */}
+      <button
+        type="button"
+        className="btn-load-more"
+        aria-disabled={isLoading}
+        onClick={isLoading ? undefined : onLoadMore}
+      >
         {label}
       </button>
     </div>

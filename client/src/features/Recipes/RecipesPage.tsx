@@ -79,7 +79,9 @@ export const RecipesPage = ({ tab }: Props) => {
   );
   const { fetchNextPage } = recipesQuery;
   const loadMore = useCallback(() => {
-    void fetchNextPage();
+    // Never cancel an in-flight refetch: its fresh offsets are what the next page
+    // must start from after a delete or create.
+    void fetchNextPage({ cancelRefetch: false });
   }, [fetchNextPage]);
 
   const createRecipe = useCreateRecipe();
@@ -198,7 +200,9 @@ export const RecipesPage = ({ tab }: Props) => {
 
           <LoadMore
             hasMore={recipesQuery.hasNextPage}
-            isLoading={recipesQuery.isFetchingNextPage}
+            // Any fetch, refetches included, pauses auto-loading: a next page
+            // requested from stale offsets could skip a recipe.
+            isLoading={recipesQuery.isFetching}
             isError={recipesQuery.isFetchNextPageError}
             onLoadMore={loadMore}
           />

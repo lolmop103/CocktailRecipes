@@ -772,7 +772,12 @@ select {
   border-radius: var(--radius);
   cursor: pointer;
 }
-.btn-load-more:disabled {
+.load-more__status {
+  margin: 0 0 0.75rem;
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
+}
+.btn-load-more[aria-disabled='true'] {
   opacity: 0.6;
   cursor: progress;
 }

@@ -29,8 +29,11 @@ test('scrolling to the end shows every recipe once', async ({ page }) => {
 
   const showMore = page.getByRole('button', { name: 'Show more' });
   while (await showMore.isVisible()) {
-    await showMore.scrollIntoViewIfNeeded();
-    await page.waitForResponse((res) => res.url().includes('/api/recipes'));
+    // Listen before scrolling: a fast response could otherwise arrive first.
+    await Promise.all([
+      page.waitForResponse((res) => res.url().includes('/api/recipes')),
+      showMore.scrollIntoViewIfNeeded(),
+    ]);
   }
 
   await expect(count).toHaveText(`Showing ${String(total)} of ${String(total)} recipes`);

@@ -12,10 +12,22 @@ describe('LoadMore', () => {
     expect(onLoadMore).toHaveBeenCalledTimes(1);
   });
 
-  it('LoadMore_loading_buttonDisabled', () => {
-    render(<LoadMore hasMore isLoading isError={false} onLoadMore={vi.fn()} />);
+  it('LoadMore_loading_staysFocusableButIgnoresClicks', () => {
+    const onLoadMore = vi.fn();
+    render(<LoadMore hasMore isLoading isError={false} onLoadMore={onLoadMore} />);
+    const button = screen.getByRole('button', { name: 'Loading…' });
 
-    expect(screen.getByRole('button', { name: 'Loading…' })).toBeDisabled();
+    fireEvent.click(button);
+
+    expect(button).toBeEnabled();
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+    expect(onLoadMore).not.toHaveBeenCalled();
+  });
+
+  it('LoadMore_error_announcesTheFailure', () => {
+    render(<LoadMore hasMore isLoading={false} isError onLoadMore={vi.fn()} />);
+
+    expect(screen.getByRole('status')).toHaveTextContent('Could not load more recipes.');
   });
 
   it('LoadMore_error_showsTryAgain', () => {
