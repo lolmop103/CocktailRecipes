@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
+import { hashPassword } from '../src/lib/password.js';
 
 /**
  * env.ts validates once at import time, so each case resets the module
@@ -60,6 +61,7 @@ describe('env — admin and session settings', () => {
 
   it('env_productionWithAdmin_ok', async () => {
     vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('ADMIN_PASSWORD_HASH', await hashPassword('a-real-password'));
 
     const { env } = await loadEnv();
 
@@ -102,6 +104,40 @@ describe('env — admin and session settings', () => {
     const { env } = await loadEnv();
 
     expect(env.TRUST_PROXY_HOPS).toBe(0);
+  });
+});
+
+describe('env — admin hash strength', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('env_productionWithTestHash_failsAsTooCheap', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('ALLOW_WEAK_ADMIN_HASH', undefined);
+
+    await expect(loadEnv()).rejects.toThrow(/ADMIN_PASSWORD_HASH: .*too cheap/);
+  });
+
+  it('env_productionWithTestHashAndAllowWeak_ok', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('ALLOW_WEAK_ADMIN_HASH', 'true');
+
+    const { env } = await loadEnv();
+
+    expect(env.ALLOW_WEAK_ADMIN_HASH).toBe(true);
+  });
+
+  it('env_allowWeakOtherThanTrueOrFalse_fails', async () => {
+    vi.stubEnv('ALLOW_WEAK_ADMIN_HASH', 'yes');
+
+    await expect(loadEnv()).rejects.toThrow(/ALLOW_WEAK_ADMIN_HASH/);
+  });
+
+  it('env_unusableHash_failsEvenOutsideProduction', async () => {
+    vi.stubEnv('ADMIN_PASSWORD_HASH', 'scrypt$1048576$8$1$AA==$AA==');
+
+    await expect(loadEnv()).rejects.toThrow(/ADMIN_PASSWORD_HASH: .*cannot be verified/);
   });
 });
 

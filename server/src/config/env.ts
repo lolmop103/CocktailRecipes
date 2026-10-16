@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { adminHashProblem } from '../lib/password.js';
 
 /**
  * Environment contract, validated once at startup (AGENT.md § Env vars).
@@ -30,11 +31,28 @@ const envSchema = z
       .string()
       .regex(PASSWORD_HASH, 'must be a hash from `npm run hash-password`')
       .optional(),
+    /**
+     * Lets production accept a hash cheaper than `npm run hash-password` makes.
+     * Only for the e2e tests, the CI smoke test and the load probe, which run
+     * production mode with the public test-only hash. Never on a real server.
+     */
+    ALLOW_WEAK_ADMIN_HASH: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((value) => value === 'true'),
     SESSION_TTL_DAYS: z.coerce.number().int().min(1).max(365).default(30),
     /** Proxies in front of the app (the owner's Caddy is one); decides which client IP is trusted. */
     TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
   })
   .superRefine((value, ctx) => {
+    if (value.ADMIN_PASSWORD_HASH !== undefined) {
+      // Outside production any usable hash will do, so tests and development stay fast.
+      const allowWeak = value.NODE_ENV !== 'production' || value.ALLOW_WEAK_ADMIN_HASH;
+      const problem = adminHashProblem(value.ADMIN_PASSWORD_HASH, { allowWeak });
+      if (problem)
+        ctx.addIssue({ code: 'custom', path: ['ADMIN_PASSWORD_HASH'], message: problem });
+    }
+
     // A production server must never start with editing open to everyone.
     if (value.NODE_ENV !== 'production') return;
     for (const name of ADMIN_VARIABLES) {
