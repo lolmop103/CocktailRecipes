@@ -7,11 +7,15 @@ import { existsSync } from 'node:fs';
 import { router } from './routes/index.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { env } from './config/env.js';
+import { createRateLimiters } from './middleware/rateLimits.js';
 
 const API_PREFIX = '/api';
 
 export function createApp(): Express {
   const app = express();
+  // Behind the owner's Caddy this is 1, so req.ip is the address Caddy saw —
+  // never one a client wrote into X-Forwarded-For itself.
+  app.set('trust proxy', env.TRUST_PROXY_HOPS);
 
   // Security
   app.use(helmet());
@@ -21,6 +25,11 @@ export function createApp(): Express {
       credentials: true,
     }),
   );
+
+  // Per-IP limits, before any body is parsed so a refused request costs little.
+  const limits = createRateLimiters();
+  app.use(API_PREFIX, limits.read, limits.write);
+  app.use(`${API_PREFIX}/auth/login`, limits.loginFailures);
 
   // Parsing
   // The largest valid recipe is well under this; anything bigger is refused with a 413.
