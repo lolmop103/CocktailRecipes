@@ -22,9 +22,17 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
   const known = bodyFor(err);
 
   if (known) {
-    // 4xx are client mistakes — worth noting, not worth alarming about.
     if (known.status >= 500) {
       logger.error('Request failed', { method: req.method, path: req.path, status: known.status });
+    } else {
+      // 4xx are client mistakes — worth noting, not worth alarming about. One
+      // line and no stack, so a flood of junk requests cannot flood the logs.
+      logger.warn('Request rejected', {
+        method: req.method,
+        path: req.path,
+        status: known.status,
+        message: known.message,
+      });
     }
     res.status(known.status).json(known);
     return;
