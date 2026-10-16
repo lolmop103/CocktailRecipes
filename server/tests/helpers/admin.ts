@@ -15,9 +15,12 @@ export const TEST_ADMIN_PASSWORD_HASH =
 /** The browser origin the API accepts writes from in tests (CLIENT_ORIGIN's default). */
 export const TEST_ORIGIN = 'http://localhost:5173';
 
-/** A supertest agent logged in as the test admin; the session cookie is kept. */
+/**
+ * A supertest agent logged in as the test admin: it keeps the session cookie
+ * and sends the allowed Origin on every request, as the browser app does.
+ */
 export async function adminAgent(app: Express): Promise<TestAgent> {
-  const agent = request.agent(app);
+  const agent = request.agent(app).set('Origin', TEST_ORIGIN);
   const res = await agent.post('/api/auth/login').set('Origin', TEST_ORIGIN).send(TEST_ADMIN);
   if (res.status !== 204) throw new Error(`test admin login failed: ${String(res.status)}`);
   return agent;
