@@ -23,8 +23,8 @@ export function createApp(): Express {
   );
 
   // Parsing
-  app.use(express.json({ limit: '1mb' }));
-  app.use(express.urlencoded({ extended: true }));
+  // The largest valid recipe is well under this; anything bigger is refused with a 413.
+  app.use(express.json({ limit: '64kb' }));
 
   // Routes
   app.use(API_PREFIX, router);

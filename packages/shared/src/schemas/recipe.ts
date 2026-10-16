@@ -1,9 +1,17 @@
 import { z } from 'zod';
 import {
+  AMOUNT_MAX,
+  GLASS_TYPE_MAX,
+  INGREDIENT_NAME_MAX,
+  INGREDIENTS_MAX,
+  INSTRUCTIONS_MAX,
   MAX_COLLECTION_ID_LENGTH,
   MAX_FILTER_TERMS,
   MAX_SEARCH_LENGTH,
   MAX_TERM_LENGTH,
+  RECIPE_NAME_MAX,
+  TAG_LENGTH_MAX,
+  TAGS_MAX,
 } from '../limits.js';
 
 export const MIN_RATING = 1;
@@ -14,9 +22,16 @@ export const SORT_ORDER = ['asc', 'desc'] as const;
 export const UNITS = ['ml', 'oz'] as const;
 
 export const ingredientSchema = z.object({
-  name: z.string().min(1),
-  amount: z.string().optional(),
+  name: z.string().min(1).max(INGREDIENT_NAME_MAX),
+  amount: z.string().max(AMOUNT_MAX).optional(),
 });
+
+// Field schemas shared by create and update, so both paths enforce one set of limits.
+const recipeName = z.string().min(1).max(RECIPE_NAME_MAX);
+const ingredientList = z.array(ingredientSchema).min(1).max(INGREDIENTS_MAX);
+const instructions = z.string().max(INSTRUCTIONS_MAX);
+const glassType = z.string().max(GLASS_TYPE_MAX);
+const tagList = z.array(z.string().min(1).max(TAG_LENGTH_MAX)).max(TAGS_MAX);
 
 export const recipeSchema = z.object({
   id: z.string(),
@@ -30,11 +45,11 @@ export const recipeSchema = z.object({
 });
 
 export const createRecipeSchema = z.object({
-  name: z.string().min(1),
-  ingredients: z.array(ingredientSchema).min(1),
-  instructions: z.string().optional(),
-  glassType: z.string().optional(),
-  tags: z.array(z.string()).optional(),
+  name: recipeName,
+  ingredients: ingredientList,
+  instructions: instructions.optional(),
+  glassType: glassType.optional(),
+  tags: tagList.optional(),
   rating: z.number().int().min(MIN_RATING).max(MAX_RATING).optional(),
   isMocktail: z.boolean().default(false),
 });
@@ -46,11 +61,11 @@ export const createRecipeSchema = z.object({
  * field once it has been set.
  */
 export const updateRecipeSchema = z.object({
-  name: z.string().min(1).optional(),
-  ingredients: z.array(ingredientSchema).min(1).optional(),
-  instructions: z.string().nullable().optional(),
-  glassType: z.string().nullable().optional(),
-  tags: z.array(z.string()).nullable().optional(),
+  name: recipeName.optional(),
+  ingredients: ingredientList.optional(),
+  instructions: instructions.nullable().optional(),
+  glassType: glassType.nullable().optional(),
+  tags: tagList.nullable().optional(),
   rating: z.number().int().min(MIN_RATING).max(MAX_RATING).nullable().optional(),
   isMocktail: z.boolean().optional(),
 });
