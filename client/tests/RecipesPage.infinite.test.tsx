@@ -9,6 +9,8 @@ const api = {
   list: vi.fn(),
   getIngredients: vi.fn(),
   getCollections: vi.fn(),
+  rate: vi.fn(),
+  delete: vi.fn(),
 };
 
 vi.mock('../src/features/Recipes/services/api.js', () => ({
@@ -157,5 +159,49 @@ describe('RecipesPage — infinite list', () => {
     await screen.findByRole('heading', { name: 'R29' });
 
     expect(starRenders.get('R0')).toBe(before);
+  });
+
+  it('RecipesPage_rateARecipe_showsTheNewRating', async () => {
+    twoPages();
+    api.rate.mockResolvedValue({ ...recipe(0), rating: 4 });
+    await renderPage();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rate R0 4 stars' }));
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Rate R0 4 stars' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      ),
+    );
+  });
+
+  it('RecipesPage_deleteARecipe_removesTheCardAndCountsDown', async () => {
+    // The server forgets R0 once it is deleted, as the refetch will show.
+    let deleted = false;
+    api.list.mockImplementation((_filters: unknown, offset: number) => {
+      const all = range(deleted ? 1 : 0, 30);
+      return Promise.resolve(
+        page(
+          all.slice(offset, offset + 24),
+          all.length,
+          offset + 24 < all.length ? offset + 24 : null,
+        ),
+      );
+    });
+    api.delete.mockImplementation(() => {
+      deleted = true;
+      return Promise.resolve();
+    });
+    vi.stubGlobal('confirm', () => true);
+    await renderPage();
+
+    fireEvent.click(screen.getByLabelText('Delete R0'));
+
+    await waitFor(() =>
+      expect(screen.queryByRole('heading', { name: 'R0' })).not.toBeInTheDocument(),
+    );
+    expect(screen.getByText(/of 29 recipes/)).toBeInTheDocument();
+    vi.unstubAllGlobals();
   });
 });

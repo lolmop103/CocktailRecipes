@@ -6,9 +6,10 @@ import {
   useQueryClient,
   type QueryClient,
 } from '@tanstack/react-query';
-import type { Collection, IngredientMeta, Recipe } from '../types/index.js';
+import type { Collection, IngredientMeta } from '../types/index.js';
 import type { CreateRecipePayload, RecipeFilters, RecipeUpdatePayload } from '../types/index.js';
 import { recipesApi } from '../services/api.js';
+import { removeRecipeFromPages, replaceRecipeInPages, type RecipePages } from '../utils/pages.js';
 
 /**
  * Query keys in one place so invalidation cannot drift from the queries it is
@@ -94,8 +95,8 @@ export function useRateRecipe() {
     onSuccess: (updated) => {
       // The rating is a small, local change — patch the cache in place rather
       // than refetching every list the recipe appears in.
-      client.setQueriesData<Recipe[]>({ queryKey: queryKeys.allRecipes }, (current) =>
-        current?.map((r) => (r.id === updated.id ? updated : r)),
+      client.setQueriesData<RecipePages>({ queryKey: queryKeys.allRecipes }, (current) =>
+        replaceRecipeInPages(current, updated),
       );
     },
   });
@@ -107,8 +108,8 @@ export function useDeleteRecipe() {
     mutationFn: (id: string) => recipesApi.delete(id),
     onSuccess: async (_result, id) => {
       // The server drops the recipe from every collection, so both caches move.
-      client.setQueriesData<Recipe[]>({ queryKey: queryKeys.allRecipes }, (current) =>
-        current?.filter((r) => r.id !== id),
+      client.setQueriesData<RecipePages>({ queryKey: queryKeys.allRecipes }, (current) =>
+        removeRecipeFromPages(current, id),
       );
       client.setQueryData<Collection[]>(queryKeys.collections, (current) =>
         current?.map((c) => ({ ...c, recipeIds: c.recipeIds.filter((rid) => rid !== id) })),
