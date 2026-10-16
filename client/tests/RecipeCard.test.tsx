@@ -26,6 +26,7 @@ const minimalRecipe: Recipe = {
 };
 
 const defaultCardProps = {
+  canEdit: true,
   collections: [],
   onAddToCollection: vi.fn(),
   onRemoveFromCollection: vi.fn(),
@@ -104,7 +105,7 @@ describe('RecipeCard', () => {
       />,
     );
     fireEvent.click(screen.getByLabelText('Edit Negroni'));
-    expect(onEdit).toHaveBeenCalledTimes(1);
+    expect(onEdit).toHaveBeenCalledWith(fullRecipe);
   });
 
   it('calls_onDelete_afterConfirmation', () => {
@@ -120,7 +121,7 @@ describe('RecipeCard', () => {
       />,
     );
     fireEvent.click(screen.getByLabelText('Delete Negroni'));
-    expect(onDelete).toHaveBeenCalledTimes(1);
+    expect(onDelete).toHaveBeenCalledWith(fullRecipe.id);
     vi.unstubAllGlobals();
   });
 
@@ -139,5 +140,24 @@ describe('RecipeCard', () => {
     fireEvent.click(screen.getByLabelText('Delete Negroni'));
     expect(onDelete).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
+  });
+});
+
+describe('RecipeCard — visitors', () => {
+  it('RecipeCard_canEditFalse_noEditDeleteOrCollections', () => {
+    render(
+      <RecipeCard
+        recipe={fullRecipe}
+        unit="ml"
+        onRate={vi.fn()}
+        {...defaultCardProps}
+        canEdit={false}
+      />,
+    );
+
+    expect(screen.queryByLabelText('Edit Negroni')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Delete Negroni')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Add Negroni to a collection')).not.toBeInTheDocument();
+    expect(screen.queryAllByRole('button')).toHaveLength(0);
   });
 });

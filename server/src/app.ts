@@ -7,11 +7,18 @@ import { existsSync } from 'node:fs';
 import { router } from './routes/index.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { env } from './config/env.js';
+import { createRateLimiters } from './middleware/rateLimits.js';
+import { apiCacheHeaders, NO_CACHE, staticCacheHeaders } from './middleware/cacheHeaders.js';
 
 const API_PREFIX = '/api';
 
 export function createApp(): Express {
   const app = express();
+  // Behind the owner's Caddy this is 1, so req.ip is the address Caddy saw —
+  // never one a client wrote into X-Forwarded-For itself.
+  // 0 hops becomes `false`, not 0: only then does the rate limiter report a
+  // request that arrives with X-Forwarded-For — the sign of a forgotten setting.
+  app.set('trust proxy', env.TRUST_PROXY_HOPS || false);
 
   // Security
   app.use(helmet());
@@ -22,12 +29,17 @@ export function createApp(): Express {
     }),
   );
 
+  // Per-IP limits, before any body is parsed so a refused request costs little.
+  const limits = createRateLimiters();
+  app.use(API_PREFIX, limits.read, limits.write);
+  app.use(`${API_PREFIX}/auth/login`, limits.loginFailures);
+
   // Parsing
-  app.use(express.json({ limit: '1mb' }));
-  app.use(express.urlencoded({ extended: true }));
+  // The largest valid recipe is well under this; anything bigger is refused with a 413.
+  app.use(express.json({ limit: '64kb' }));
 
   // Routes
-  app.use(API_PREFIX, router);
+  app.use(API_PREFIX, apiCacheHeaders, router);
 
   // Anything under /api that got this far does not exist. This must be
   // registered before the SPA fallback, otherwise the fallback would answer
@@ -40,11 +52,12 @@ export function createApp(): Express {
   if (env.NODE_ENV === 'production') {
     const clientDist = resolve(process.cwd(), 'client', 'dist');
     if (existsSync(clientDist)) {
-      app.use(express.static(clientDist));
+      app.use(express.static(clientDist, { cacheControl: false, setHeaders: staticCacheHeaders }));
       // Express 5 (path-to-regexp v8) no longer accepts a bare '*'; the
       // wildcard must be named.
       app.get('/{*splat}', (_req, res) => {
-        res.sendFile(resolve(clientDist, 'index.html'));
+        res.set('Cache-Control', NO_CACHE);
+        res.sendFile(resolve(clientDist, 'index.html'), { cacheControl: false });
       });
     }
   }

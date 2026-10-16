@@ -22,6 +22,8 @@ describe('production boot', () => {
   beforeAll(async () => {
     mkdirSync(join(root, 'client', 'dist'), { recursive: true });
     writeFileSync(join(root, 'client', 'dist', 'index.html'), INDEX_HTML);
+    mkdirSync(join(root, 'client', 'dist', 'assets'), { recursive: true });
+    writeFileSync(join(root, 'client', 'dist', 'assets', 'app-abc123.js'), 'console.log(1);');
     process.chdir(root);
 
     vi.stubEnv('NODE_ENV', 'production');
@@ -46,12 +48,33 @@ describe('production boot', () => {
     rmSync(root, { recursive: true, force: true });
   });
 
+  it('assetFile_immutableOneYear', async () => {
+    const res = await request(app).get('/assets/app-abc123.js');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['cache-control']).toBe('public, max-age=31536000, immutable');
+  });
+
+  it('indexHtml_noCache', async () => {
+    const res = await request(app).get('/');
+
+    expect(res.text).toBe(INDEX_HTML);
+    expect(res.headers['cache-control']).toBe('no-cache');
+  });
+
+  it('spaFallback_noCache', async () => {
+    const res = await request(app).get('/mocktails');
+
+    expect(res.text).toBe(INDEX_HTML);
+    expect(res.headers['cache-control']).toBe('no-cache');
+  });
+
   it('createsTheDataDirectory_andSeedsTheDatabase', async () => {
     expect(existsSync(join(root, 'data', 'cocktail.db'))).toBe(true);
 
     const res = await request(app).get('/api/recipes');
     expect(res.status).toBe(200);
-    expect(res.body).toHaveLength(8);
+    expect(res.body.items).toHaveLength(8);
   });
 
   it('servesTheClientShell_forDeepLinks', async () => {

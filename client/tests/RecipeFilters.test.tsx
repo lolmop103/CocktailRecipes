@@ -12,6 +12,7 @@ const knownIngredients: IngredientMeta[] = [
 ];
 
 const defaultFilterProps = {
+  canEdit: true,
   collections: [],
   onUpdateIngredientMeta: vi.fn(),
 };

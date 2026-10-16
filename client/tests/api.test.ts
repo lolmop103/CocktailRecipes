@@ -75,6 +75,14 @@ describe('recipesApi.list — query building', () => {
     expect(requestedUrl(fetchMock)).not.toContain('onlySelectedIngredients');
   });
 
+  it('api_list_sendsLimitAndOffset', async () => {
+    await recipesApi.list(BASE_FILTERS, 48);
+
+    const url = requestedUrl(fetchMock);
+    expect(url).toContain('limit=24');
+    expect(url).toContain('offset=48');
+  });
+
   it('sends_collectionId_soFilteringHappensServerSide', async () => {
     await recipesApi.list({ ...BASE_FILTERS, collectionId: '7' });
 
@@ -84,7 +92,7 @@ describe('recipesApi.list — query building', () => {
   it('forwards_abortSignal_toFetch', async () => {
     const controller = new AbortController();
 
-    await recipesApi.list(BASE_FILTERS, controller.signal);
+    await recipesApi.list(BASE_FILTERS, 0, controller.signal);
 
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ signal: controller.signal });
   });

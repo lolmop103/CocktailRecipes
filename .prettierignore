@@ -10,3 +10,6 @@ tasks/
 .github/skills/
 .github/agents/
 .github/release/
+
+# Local agent workspaces (git-ignored by their own .gitignore)
+.superpowers/

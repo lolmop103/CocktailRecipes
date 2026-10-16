@@ -19,12 +19,17 @@ const api = {
   deleteCollection: vi.fn(),
 };
 
+const authApi = { me: vi.fn(), login: vi.fn(), logout: vi.fn() };
+vi.mock('../src/features/Auth/services/authApi.js', () => ({ authApi }));
+
 vi.mock('../src/features/Recipes/services/api.js', () => ({
   recipesApi: api,
   ApiError: class ApiError extends Error {
     fieldErrors: { path: string; message: string }[] = [];
   },
 }));
+
+const FIRST_RENDER_MS = 3_000;
 
 const { RecipesPage } = await import('../src/features/Recipes/RecipesPage.js');
 
@@ -42,6 +47,9 @@ const INGREDIENTS: IngredientMeta[] = [
 ];
 const PARTY: Collection = { id: '1', name: 'Party', recipeIds: ['1'] };
 
+/** One complete result: every recipe on a single page. */
+const page = (items: Recipe[]) => ({ items, total: items.length, nextOffset: null });
+
 /** Filters passed to the most recent list() call. */
 function lastFilters() {
   return api.list.mock.calls.at(-1)?.[0] as Record<string, unknown>;
@@ -49,7 +57,8 @@ function lastFilters() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  api.list.mockResolvedValue([MOJITO]);
+  authApi.me.mockResolvedValue({ authenticated: true, username: 'admin' });
+  api.list.mockResolvedValue(page([MOJITO]));
   api.getIngredients.mockResolvedValue(INGREDIENTS);
   api.getCollections.mockResolvedValue([PARTY]);
 });
@@ -60,7 +69,9 @@ afterEach(() => {
 
 async function renderPage(route = '/cocktails') {
   const view = renderWithProviders(<RecipesPage tab="cocktail" />, { route });
-  await screen.findByText('Mojito');
+  // A generous first wait: under a parallel run the first render also pays for module setup.
+  await screen.findByText('Mojito', {}, { timeout: FIRST_RENDER_MS });
+  await screen.findByRole('button', { name: '+ New Recipe' }, { timeout: FIRST_RENDER_MS });
   return view;
 }
 
@@ -80,7 +91,7 @@ describe('RecipesPage — rendering', () => {
   });
 
   it('showsEmptyState_whenNothingMatches', async () => {
-    api.list.mockResolvedValue([]);
+    api.list.mockResolvedValue(page([]));
     renderWithProviders(<RecipesPage tab="cocktail" />);
 
     expect(await screen.findByText(/No recipes match your filters/)).toBeInTheDocument();
@@ -134,14 +145,14 @@ describe('RecipesPage — filter state lives in the URL', () => {
   });
 
   it('requestsMocktails_onTheMocktailRoute', async () => {
-    api.list.mockResolvedValue([]);
+    api.list.mockResolvedValue(page([]));
     renderWithProviders(<RecipesPage tab="mocktail" />, { route: '/mocktails' });
 
     await waitFor(() => expect(lastFilters()).toMatchObject({ isMocktail: true }));
   });
 
   it('drops_alcoholicIngredients_fromTheMocktailRequest', async () => {
-    api.list.mockResolvedValue([]);
+    api.list.mockResolvedValue(page([]));
     renderWithProviders(<RecipesPage tab="mocktail" />, {
       route: '/mocktails?ingredients=white rum,soda water',
     });
@@ -364,5 +375,152 @@ describe('RecipesPage — tab navigation', () => {
         excludeIngredients: ['soda water'],
       }),
     );
+  });
+});
+
+describe('RecipesPage — who may edit', () => {
+  it('RecipesPage_loggedOut_noNewRecipeButtonAndReadOnlyStars', async () => {
+    authApi.me.mockResolvedValue({ authenticated: false });
+    renderWithProviders(<RecipesPage tab="cocktail" />, { route: '/cocktails' });
+    await screen.findByText('Mojito');
+    await waitFor(() => expect(authApi.me).toHaveBeenCalled());
+
+    expect(screen.queryByRole('button', { name: '+ New Recipe' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Edit Mojito')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Rate Mojito/ })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Manage ingredient classifications')).not.toBeInTheDocument();
+  });
+
+  it('RecipesPage_loggedIn_showsNewRecipeButton', async () => {
+    await renderPage();
+
+    expect(screen.getByRole('button', { name: '+ New Recipe' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Manage ingredient classifications')).toBeInTheDocument();
+  });
+});
+
+describe('RecipesPage — session expiry while editing', () => {
+  it('RecipesPage_mutation401_showsBannerAndKeepsDialogOpen', async () => {
+    const { ApiError: RealApiError } = await import('../src/lib/http.js');
+    const { SessionExpiredBanner } =
+      await import('../src/features/Auth/components/SessionExpiredBanner.js');
+    api.update.mockRejectedValue(new RealApiError(401, 'Log in to make changes', []));
+    renderWithProviders(
+      <>
+        <SessionExpiredBanner />
+        <RecipesPage tab="cocktail" />
+      </>,
+      { route: '/cocktails' },
+    );
+    fireEvent.click(await screen.findByLabelText('Edit Mojito'));
+    const dialog = screen.getByRole('dialog', { name: 'Edit recipe' });
+
+    // The server refused the write because the session ended; /me now agrees.
+    authApi.me.mockResolvedValue({ authenticated: false });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save Changes' }));
+
+    expect(await screen.findByText('Your session has expired.')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Edit recipe' })).toBeInTheDocument();
+  });
+});
+
+describe('RecipesPage — dialogs survive the session ending', () => {
+  /** The page as the app mounts it: with the banner that reacts to a refused write. */
+  async function renderWithBanner() {
+    const { SessionExpiredBanner } =
+      await import('../src/features/Auth/components/SessionExpiredBanner.js');
+    renderWithProviders(
+      <>
+        <SessionExpiredBanner />
+        <RecipesPage tab="cocktail" />
+      </>,
+      { route: '/cocktails' },
+    );
+    await screen.findByRole('button', { name: '+ New Recipe' });
+  }
+
+  it('RecipesPage_create401AndSessionGone_newRecipeDialogStaysOpen', async () => {
+    const { ApiError: RealApiError } = await import('../src/lib/http.js');
+    api.create.mockRejectedValue(new RealApiError(401, 'Log in to make changes', []));
+    await renderWithBanner();
+    fireEvent.click(screen.getByRole('button', { name: '+ New Recipe' }));
+    const dialog = screen.getByRole('dialog', { name: 'Add new recipe' });
+    fireEvent.change(within(dialog).getByLabelText('Name *'), { target: { value: 'Typed Sour' } });
+    fireEvent.change(within(dialog).getByRole('combobox', { name: 'Ingredient 1 name' }), {
+      target: { value: 'gin' },
+    });
+    authApi.me.mockResolvedValue({ authenticated: false });
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Create Recipe' }));
+
+    await waitFor(() => expect(api.create).toHaveBeenCalled());
+    await waitFor(() => expect(authApi.me.mock.calls.length).toBeGreaterThan(1));
+    expect(screen.getByRole('dialog', { name: 'Add new recipe' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Name *')).toHaveValue('Typed Sour');
+  });
+
+  it('RecipesPage_update401AndSessionGone_editDialogStaysOpen', async () => {
+    const { ApiError: RealApiError } = await import('../src/lib/http.js');
+    api.update.mockRejectedValue(new RealApiError(401, 'Log in to make changes', []));
+    await renderWithBanner();
+    fireEvent.click(screen.getByLabelText('Edit Mojito'));
+    const dialog = screen.getByRole('dialog', { name: 'Edit recipe' });
+    authApi.me.mockResolvedValue({ authenticated: false });
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save Changes' }));
+
+    await waitFor(() => expect(authApi.me.mock.calls.length).toBeGreaterThan(1));
+    expect(screen.getByRole('dialog', { name: 'Edit recipe' })).toBeInTheDocument();
+  });
+});
+
+describe('RecipesPage — rate limited', () => {
+  it('RecipesPage_429_showsServerMessage', async () => {
+    const { ApiError: RealApiError } = await import('../src/lib/http.js');
+    api.list.mockRejectedValue(
+      new RealApiError(429, 'Too many requests — try again in a moment', []),
+    );
+
+    renderWithProviders(<RecipesPage tab="cocktail" />, { route: '/cocktails' });
+
+    expect(
+      await screen.findByText('Too many requests — try again in a moment'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Is the server running/)).not.toBeInTheDocument();
+  });
+});
+
+describe('RecipesPage — rate limited elsewhere', () => {
+  it('RecipesPage_ingredients429_showsServerMessage', async () => {
+    const { ApiError: RealApiError } = await import('../src/lib/http.js');
+    api.getIngredients.mockRejectedValue(
+      new RealApiError(429, 'Too many requests — try again in a moment', []),
+    );
+
+    renderWithProviders(<RecipesPage tab="cocktail" />, { route: '/cocktails' });
+
+    expect(
+      await screen.findByText('Too many requests — try again in a moment'),
+    ).toBeInTheDocument();
+  });
+
+  it('RecipesPage_create429_dialogShowsServerMessage', async () => {
+    const { ApiError: RealApiError } = await import('../src/lib/http.js');
+    api.create.mockRejectedValue(
+      new RealApiError(429, 'Too many requests — try again in a moment', []),
+    );
+    await renderPage();
+    fireEvent.click(screen.getByRole('button', { name: '+ New Recipe' }));
+    const dialog = screen.getByRole('dialog', { name: 'Add new recipe' });
+    fireEvent.change(within(dialog).getByLabelText('Name *'), { target: { value: 'Busy Sour' } });
+    fireEvent.change(within(dialog).getByRole('combobox', { name: 'Ingredient 1 name' }), {
+      target: { value: 'gin' },
+    });
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Create Recipe' }));
+
+    expect(
+      await within(dialog).findByText('Too many requests — try again in a moment'),
+    ).toBeInTheDocument();
   });
 });

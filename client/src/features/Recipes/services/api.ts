@@ -1,5 +1,8 @@
+import { PAGE_SIZE_DEFAULT } from '@cocktail/shared/limits';
+import { jsonInit, request } from '@/lib/http.js';
 import type {
   Recipe,
+  RecipePage,
   RecipeFilters,
   IngredientMeta,
   Collection,
@@ -7,53 +10,11 @@ import type {
   CreateRecipePayload,
 } from '../types/index.js';
 
+export { ApiError } from '@/lib/http.js';
+
 const BASE = '/api/recipes';
 
-interface ApiErrorBody {
-  status?: number;
-  message?: string;
-  errors?: { path: string; message: string }[];
-}
-
-/** An error carrying the server's structured field errors, when it sent any. */
-export class ApiError extends Error {
-  readonly status: number;
-  readonly fieldErrors: { path: string; message: string }[];
-
-  constructor(status: number, message: string, fieldErrors: { path: string; message: string }[]) {
-    super(message);
-    this.name = 'ApiError';
-    this.status = status;
-    this.fieldErrors = fieldErrors;
-  }
-}
-
-async function request<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, init);
-
-  if (!res.ok) {
-    let body: ApiErrorBody = {};
-    try {
-      body = (await res.json()) as ApiErrorBody;
-    } catch {
-      // Non-JSON error body (proxy error, network appliance) — fall through.
-    }
-    throw new ApiError(res.status, body.message ?? res.statusText, body.errors ?? []);
-  }
-
-  return res.status === 204 ? (undefined as T) : ((await res.json()) as T);
-}
-
-function jsonInit(method: string, body: unknown, signal?: AbortSignal): RequestInit {
-  return {
-    method,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-    ...(signal ? { signal } : {}),
-  };
-}
-
-function buildQuery(filters: RecipeFilters): string {
+function buildQuery(filters: RecipeFilters, offset: number): string {
   const params = new URLSearchParams();
   if (filters.search) params.set('search', filters.search);
   if (filters.ingredients.length > 0) params.set('ingredients', filters.ingredients.join(','));
@@ -68,12 +29,18 @@ function buildQuery(filters: RecipeFilters): string {
   params.set('sortOrder', filters.sortOrder);
   if (filters.isMocktail !== undefined) params.set('isMocktail', String(filters.isMocktail));
   if (filters.collectionId !== undefined) params.set('collectionId', filters.collectionId);
+  params.set('limit', String(PAGE_SIZE_DEFAULT));
+  params.set('offset', String(offset));
   return params.toString();
 }
 
 export const recipesApi = {
-  list(filters: RecipeFilters, signal?: AbortSignal): Promise<Recipe[]> {
-    return request<Recipe[]>(`${BASE}?${buildQuery(filters)}`, signal ? { signal } : undefined);
+  /** One page of recipes, starting at `offset`. */
+  list(filters: RecipeFilters, offset = 0, signal?: AbortSignal): Promise<RecipePage> {
+    return request<RecipePage>(
+      `${BASE}?${buildQuery(filters, offset)}`,
+      signal ? { signal } : undefined,
+    );
   },
 
   get(id: string): Promise<Recipe> {

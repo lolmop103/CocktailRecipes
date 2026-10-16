@@ -9,7 +9,7 @@ import { collectionStore } from '../src/data/collectionStore.js';
 import type { RecipeFilters } from '@cocktail/shared';
 
 function names(filters: RecipeFilters, collectionId?: string): string[] {
-  return recipeStore.query(filters, collectionId).map((r) => r.name);
+  return recipeStore.query(filters, collectionId).items.map((r) => r.name);
 }
 
 beforeEach(() => {
@@ -163,14 +163,14 @@ describe('sort', () => {
   });
 
   it('sortBy_rating_desc_highestFirst_unratedLast', () => {
-    const result = recipeStore.query({ sortBy: 'rating', sortOrder: 'desc' });
+    const result = recipeStore.query({ sortBy: 'rating', sortOrder: 'desc' }).items;
 
     expect(result[0]?.rating).toBe(5);
     expect(result.at(-1)?.rating).toBeUndefined();
   });
 
   it('sortBy_rating_asc_treatsUnratedAsLowest', () => {
-    const result = recipeStore.query({ sortBy: 'rating', sortOrder: 'asc' });
+    const result = recipeStore.query({ sortBy: 'rating', sortOrder: 'asc' }).items;
 
     // Ascending is worst-first, and an unjudged recipe sorts below a bad one.
     expect(result[0]?.rating).toBeUndefined();
@@ -180,21 +180,21 @@ describe('sort', () => {
   it('sortBy_rating_tiesBreakByNameAscending_inBothDirections', () => {
     const desc = recipeStore
       .query({ sortBy: 'rating', sortOrder: 'desc' })
-      .filter((r) => r.rating === 5)
+      .items.filter((r) => r.rating === 5)
       .map((r) => r.name);
 
     expect(desc).toEqual(['Daiquiri', 'Negroni']);
   });
 
   it('sortBy_ingredientCount_asc_fewestFirst', () => {
-    const result = recipeStore.query({ sortBy: 'ingredientCount', sortOrder: 'asc' });
+    const result = recipeStore.query({ sortBy: 'ingredientCount', sortOrder: 'asc' }).items;
 
     expect(result[0]?.ingredients).toHaveLength(3);
     expect(result.at(-1)?.ingredients).toHaveLength(5);
   });
 
   it('sortBy_ingredientCount_desc_mostFirst', () => {
-    const result = recipeStore.query({ sortBy: 'ingredientCount', sortOrder: 'desc' });
+    const result = recipeStore.query({ sortBy: 'ingredientCount', sortOrder: 'desc' }).items;
 
     expect(result[0]?.name).toBe('Mojito');
   });

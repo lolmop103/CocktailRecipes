@@ -113,10 +113,29 @@ const m004_collectionRecipesRecipeFk: Migration = {
   },
 };
 
+const m005_sessions: Migration = {
+  version: 5,
+  name: 'sessions',
+  up: (db) => {
+    // Only a hash of each session token is stored, so a copy of the database
+    // does not hand out logged-in sessions.
+    db.exec(`
+      CREATE TABLE sessions (
+        token_hash     TEXT PRIMARY KEY,   -- hex SHA-256 of the cookie token
+        credential_tag TEXT NOT NULL,      -- fingerprint of the admin credentials it was opened with
+        created_at     INTEGER NOT NULL,   -- unix ms
+        expires_at     INTEGER NOT NULL    -- unix ms
+      );
+      CREATE INDEX idx_sessions_expires ON sessions(expires_at);
+    `);
+  },
+};
+
 /** Ordered by version. Append only — never edit a released migration. */
 export const MIGRATIONS: Migration[] = [
   m001_initialSchema,
   m002_idSequence,
   m003_filterIndexes,
   m004_collectionRecipesRecipeFk,
+  m005_sessions,
 ];

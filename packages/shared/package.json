@@ -12,6 +12,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./limits": {
+      "types": "./dist/limits.d.ts",
+      "default": "./dist/limits.js"
     }
   },
   "files": [
@@ -24,13 +28,13 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@e18e/eslint-plugin": "^0.8.1",
     "@eslint/js": "^9.1.1",
     "eslint": "^9.1.1",
     "typescript": "^5.4.5",
-    "typescript-eslint": "^8.70.0"
+    "typescript-eslint": "^8.71.2"
   }
 }

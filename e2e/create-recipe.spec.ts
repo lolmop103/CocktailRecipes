@@ -1,10 +1,12 @@
 import { test, expect } from '@playwright/test';
+import { loginAsAdmin } from './helpers/login.js';
 
 test('a new recipe appears in the grid after saving', async ({ page }) => {
+  await loginAsAdmin(page);
   await page.goto('/cocktails');
   const count = page.locator('.result-count');
-  await expect(count).toContainText(/\d+ recipes?/);
-  const before = Number((await count.textContent())?.match(/\d+/)?.[0]);
+  await expect(count).toContainText(/of \d+ recipes?/);
+  const before = Number((await count.textContent())?.match(/of (\d+)/)?.[1]);
 
   await page.getByRole('button', { name: '+ New Recipe' }).click();
   const dialog = page.getByRole('dialog', { name: 'Add new recipe' });
@@ -22,5 +24,5 @@ test('a new recipe appears in the grid after saving', async ({ page }) => {
 
   await expect(dialog).toBeHidden();
   await expect(page.getByRole('heading', { level: 3, name: 'Gin Fizz' })).toBeVisible();
-  await expect(count).toHaveText(`${String(before + 1)} recipes`);
+  await expect(count).toContainText(`of ${String(before + 1)} recipes`);
 });

@@ -10,6 +10,9 @@ services:
       PORT: '3000'
       DATA_DIR: /data
       LOG_LEVEL: info
+      # Required in production: create the hash with `npm run hash-password --workspace=server`.
+      ADMIN_USERNAME: ${ADMIN_USERNAME:?set ADMIN_USERNAME in .env}
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:?set ADMIN_PASSWORD_HASH in .env}
       # The client is served by Express in production, so origin = same host
       CLIENT_ORIGIN: http://localhost:3000
     restart: unless-stopped

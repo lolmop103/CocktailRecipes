@@ -21,12 +21,13 @@
     "knip": "knip",
     "verify": "npm run format:check && npm run lint && npm run typecheck && npm run knip && npm run test:coverage",
     "test:coverage": "npm run test:coverage --workspace=server && npm run test:coverage --workspace=client",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "probe": "node scripts/load-probe.mjs --gate-flood"
   },
   "devDependencies": {
-    "@playwright/test": "^1.63.0",
+    "@playwright/test": "^1.64.1",
     "concurrently": "^8.2.2",
-    "knip": "^6.37.0",
-    "prettier": "^3.9.7"
+    "knip": "^6.41.0",
+    "prettier": "^3.9.10"
   }
 }
