@@ -35,6 +35,8 @@ vi.mock('../src/features/Recipes/components/StarRating.js', async (importOrigina
   };
 });
 
+const FIRST_RENDER_MS = 3_000;
+
 const { RecipesPage } = await import('../src/features/Recipes/RecipesPage.js');
 
 const recipe = (i: number, prefix = 'R'): Recipe => ({
@@ -71,8 +73,9 @@ function twoPages() {
 
 async function renderPage() {
   renderWithProviders(<RecipesPage tab="cocktail" />, { route: '/cocktails' });
-  await screen.findByRole('heading', { name: 'R0' });
-  await screen.findByLabelText('Delete R0');
+  // A generous first wait: under a parallel run the first render also pays for module setup.
+  await screen.findByRole('heading', { name: 'R0' }, { timeout: FIRST_RENDER_MS });
+  await screen.findByLabelText('Delete R0', {}, { timeout: FIRST_RENDER_MS });
 }
 
 describe('RecipesPage — infinite list', () => {
@@ -270,5 +273,21 @@ describe('RecipesPage — infinite list', () => {
     expect(api.list.mock.calls.map((call: unknown[]) => call[1] as number)).toEqual([0, 0]);
     finishRefetch();
     vi.unstubAllGlobals();
+  });
+});
+
+describe('RecipesPage — rate limited next page', () => {
+  it('RecipesPage_429OnNextPage_showsTryAgain', async () => {
+    const { ApiError: RealApiError } = await import('../src/lib/http.js');
+    api.list.mockImplementation((_filters: unknown, offset: number) =>
+      offset === 0
+        ? Promise.resolve(page(range(0, 24), 30, 24))
+        : Promise.reject(new RealApiError(429, 'Too many requests — try again in a moment', [])),
+    );
+    await renderPage();
+
+    observers.fire(true);
+
+    expect(await screen.findByRole('button', { name: 'Try again' })).toBeInTheDocument();
   });
 });

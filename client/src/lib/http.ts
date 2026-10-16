@@ -47,3 +47,13 @@ export function jsonInit(method: string, body: unknown, signal?: AbortSignal): R
     ...(signal ? { signal } : {}),
   };
 }
+
+const TOO_MANY_REQUESTS = 429;
+
+/**
+ * The line to show for a failed request: the server's own words when it is
+ * rate limiting ("try again in a moment"), otherwise the caller's fallback.
+ */
+export function messageFor(error: unknown, fallback: string): string {
+  return error instanceof ApiError && error.status === TOO_MANY_REQUESTS ? error.message : fallback;
+}

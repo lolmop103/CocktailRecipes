@@ -44,3 +44,21 @@ describe('LoadMore', () => {
     expect(container).toBeEmptyDOMElement();
   });
 });
+
+describe('LoadMore — error text', () => {
+  it('LoadMore_errorMessage_shown', () => {
+    render(
+      <LoadMore
+        hasMore
+        isLoading={false}
+        isError
+        errorMessage="Too many requests — try again in a moment"
+        onLoadMore={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Too many requests — try again in a moment',
+    );
+  });
+});

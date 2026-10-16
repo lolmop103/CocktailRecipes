@@ -6,6 +6,7 @@ import type {
   IngredientMeta,
 } from '../types/index.js';
 import { ApiError } from '../services/api.js';
+import { messageFor } from '@/lib/http.js';
 import { ClassifyIngredientsModal } from './ClassifyIngredientsModal.js';
 import { IngredientNameInput } from './IngredientNameInput.js';
 import { useModal } from '../hooks/useModal.js';
@@ -88,7 +89,7 @@ export const AddRecipeModal = ({
       setError(
         err instanceof ApiError && err.fieldErrors.length > 0
           ? err.fieldErrors.map((f) => `${f.path}: ${f.message}`).join('; ')
-          : 'Could not save recipe. Is the server running?',
+          : messageFor(err, 'Could not save recipe. Is the server running?'),
       );
     } finally {
       setSaving(false);

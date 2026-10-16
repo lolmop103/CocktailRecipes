@@ -23,8 +23,10 @@ const PORT = 3111;
 const BASE = `http://localhost:${String(PORT)}/api`;
 const RUNS = 20;
 const FLOOD_CLIENTS = 10;
-const FLOOD_MS = 3000;
-const HEALTH_SAMPLE_MS = 50;
+// One full read-limit window: the limiter lets a client burst before it refuses,
+// so a shorter window would measure only the burst it deliberately allows.
+const FLOOD_MS = 65_000;
+const HEALTH_SAMPLE_MS = 250;
 
 const BUDGET = { worstMs: 30, typicalMs: 5, healthP95Ms: 50 };
 

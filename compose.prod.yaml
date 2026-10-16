@@ -1,0 +1,42 @@
+# Production: the app behind the owner's existing Caddy. See docs/deploy.md.
+#
+#   docker compose -f compose.prod.yaml up -d --build
+#
+# No ports are published: Caddy reaches the container over the shared Docker
+# network as `cocktail:3000`, and nothing else can.
+
+# Its own project name, so this stack never shares containers or the data
+# volume with the local docker-compose.yml in the same checkout.
+name: cocktail-prod
+
+services:
+  cocktail:
+    build: .
+    image: cocktail:latest
+    env_file: ${COCKTAIL_ENV_FILE:-.env}
+    environment:
+      NODE_ENV: production
+      PORT: '3000'
+      DATA_DIR: /data
+      # Proxies in front of the app. 1 = Caddy alone, receiving visitors
+      # directly. Put a CDN (e.g. Cloudflare) in front of Caddy and this must
+      # become 2 — see docs/deploy.md.
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-1}
+    volumes:
+      - cocktail-db:/data
+    networks:
+      - caddy
+    # A tiny init as PID 1 forwards `docker stop` to Node, so the container
+    # stops at once instead of being killed after 10 s.
+    init: true
+    restart: unless-stopped
+
+networks:
+  caddy:
+    external: true
+    name: ${CADDY_NETWORK:-caddy}
+
+volumes:
+  cocktail-db:
+    # A fixed name, so the backup commands in docs/deploy.md always find it.
+    name: cocktail-prod-db
