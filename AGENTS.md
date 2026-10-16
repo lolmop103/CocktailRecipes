@@ -117,6 +117,7 @@ accessibility — are in `AGENT.md`. Component structure has its own skill in
 
 ## Not set up on purpose
 
-Authentication, user accounts, multi-user data, and any hosted deployment beyond
-the Docker image. Each arrives through its own spec and plan; do not add them
-unless asked.
+More than one user, sign-up, password reset, 2FA, database backups, monitoring,
+and flood protection in front of the app. The single-owner admin login and the
+deployment behind Caddy exist (`docs/deploy.md`). Each further piece arrives
+through its own spec and plan; do not add it unless asked.

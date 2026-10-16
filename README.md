@@ -48,6 +48,8 @@ The database is created and seeded with eight classics on first run.
 - **Full CRUD** with an ingredient autocomplete, glass types and tags
 - **Ingredient classification** — new ingredients are classified alcoholic / non-alcoholic, which is what drives mocktail filtering
 - **Collections** — group recipes and filter the grid by collection
+- **Admin login** — anyone can browse and filter; only the logged-in owner can add, edit, rate, classify or delete
+- **Built to stay up** — bounded filters, recipes loaded page by page as you scroll, per-IP rate limits
 - **ml ⇄ oz toggle** — converts amounts on the fly, leaving "top up" and "10 leaves" alone
 
 ## Project Structure
@@ -110,13 +112,17 @@ Copy `.env.example` to `.env`. Every variable is validated at startup by
 `server/src/config/env.ts`, so a bad value fails the boot rather than surfacing
 later as a confusing runtime error.
 
-| Variable        | Default                 | Purpose                             |
-| --------------- | ----------------------- | ----------------------------------- |
-| `PORT`          | `3000`                  | API port                            |
-| `NODE_ENV`      | `development`           | `development`, `test`, `production` |
-| `CLIENT_ORIGIN` | `http://localhost:5173` | Allowed CORS origin                 |
-| `DATA_DIR`      | `<cwd>/data-store`      | Where `cocktail.db` is written      |
-| `LOG_LEVEL`     | `info`                  | `debug`, `info`, `warn`, `error`    |
+| Variable              | Default                    | Purpose                                                                 |
+| --------------------- | -------------------------- | ----------------------------------------------------------------------- |
+| `PORT`                | `3000`                     | API port                                                                |
+| `NODE_ENV`            | `development`              | `development`, `test`, `production`                                     |
+| `CLIENT_ORIGIN`       | `http://localhost:5173`    | The site's own origin: CORS, and every write must come from it          |
+| `DATA_DIR`            | `<cwd>/data-store`         | Where `cocktail.db` is written                                          |
+| `LOG_LEVEL`           | `info`                     | `debug`, `info`, `warn`, `error`                                        |
+| `ADMIN_USERNAME`      | — (required in production) | The one account that may change data                                    |
+| `ADMIN_PASSWORD_HASH` | — (required in production) | From `npm run hash-password --workspace=server`; keep the single quotes |
+| `SESSION_TTL_DAYS`    | `30`                       | How long a login lasts                                                  |
+| `TRUST_PROXY_HOPS`    | `0`                        | Proxies in front of the app; `1` behind Caddy                           |
 
 ## Docker
 
@@ -126,7 +132,11 @@ docker compose up --build
 
 The image serves the built client from Express on port 3000, runs as the
 unprivileged `node` user, and keeps the database on the `cocktail-db` volume at
-`/data`.
+`/data`. It runs in production mode, so `.env` needs `ADMIN_USERNAME` and
+`ADMIN_PASSWORD_HASH`.
+
+For a real deployment behind Caddy, use `compose.prod.yaml` and follow
+[docs/deploy.md](docs/deploy.md).
 
 ## Contributing
 
