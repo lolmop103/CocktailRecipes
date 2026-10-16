@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { loginAsAdmin } from './helpers/login.js';
 
 test('a new recipe appears in the grid after saving', async ({ page }) => {
+  await loginAsAdmin(page);
   await page.goto('/cocktails');
   const count = page.locator('.result-count');
   await expect(count).toContainText(/of \d+ recipes?/);
