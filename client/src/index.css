@@ -102,6 +102,9 @@ select {
 
 /* â”€â”€ App header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .app-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
   padding: 1rem 1.5rem;
   border-bottom: 1px solid var(--rule-strong);
   background: var(--paper);
@@ -749,6 +752,37 @@ select {
 .btn-add-recipe:hover {
   opacity: 0.88;
   transform: translateY(-1px);
+}
+
+/* -- Admin login --------------------------- */
+.auth-button {
+  margin-left: auto;
+  padding: 0.35rem 0.8rem;
+  background: transparent;
+  color: var(--accent);
+  font-size: var(--t-sm);
+  font-weight: 600;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-decoration: none;
+}
+.login-page {
+  max-width: 22rem;
+  margin: 2rem auto;
+}
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.login-form input {
+  padding: 0.5rem 0.7rem;
+}
+.login-form__error {
+  margin: 0;
+  color: var(--accent);
+  font-size: var(--t-sm);
 }
 
 /* -- Load more ---------------------------- */
