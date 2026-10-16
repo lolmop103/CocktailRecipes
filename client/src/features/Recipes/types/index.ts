@@ -6,6 +6,7 @@ export type {
   Ingredient,
   IngredientMeta,
   Recipe,
+  RecipePage,
   Collection,
   SortBy,
   SortOrder,

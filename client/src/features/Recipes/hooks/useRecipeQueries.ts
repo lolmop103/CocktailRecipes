@@ -1,5 +1,6 @@
 import {
   keepPreviousData,
+  useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
@@ -24,12 +25,19 @@ function invalidateRecipes(client: QueryClient): Promise<void> {
   return client.invalidateQueries({ queryKey: queryKeys.allRecipes });
 }
 
-export function useRecipesQuery(filters: RecipeFilters) {
-  return useQuery({
+/**
+ * The recipe list, a page at a time. The filters are the key, so a filter
+ * change starts again at offset 0 and pages of the old filters are never mixed
+ * in; invalidating `queryKeys.allRecipes` refetches every loaded page.
+ */
+export function useRecipePages(filters: RecipeFilters) {
+  return useInfiniteQuery({
     queryKey: queryKeys.recipes(filters),
     // React Query hands the signal in, so a superseded request is aborted and
     // its stale result can never replace a newer one.
-    queryFn: ({ signal }) => recipesApi.list(filters, signal),
+    queryFn: ({ pageParam, signal }) => recipesApi.list(filters, pageParam, signal),
+    initialPageParam: 0,
+    getNextPageParam: (last) => last.nextOffset ?? undefined,
     // Keep showing the previous results while a new filter loads, instead of
     // flashing an empty grid on every keystroke.
     placeholderData: keepPreviousData,

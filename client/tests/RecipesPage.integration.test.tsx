@@ -42,6 +42,9 @@ const INGREDIENTS: IngredientMeta[] = [
 ];
 const PARTY: Collection = { id: '1', name: 'Party', recipeIds: ['1'] };
 
+/** One complete result: every recipe on a single page. */
+const page = (items: Recipe[]) => ({ items, total: items.length, nextOffset: null });
+
 /** Filters passed to the most recent list() call. */
 function lastFilters() {
   return api.list.mock.calls.at(-1)?.[0] as Record<string, unknown>;
@@ -49,7 +52,7 @@ function lastFilters() {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  api.list.mockResolvedValue([MOJITO]);
+  api.list.mockResolvedValue(page([MOJITO]));
   api.getIngredients.mockResolvedValue(INGREDIENTS);
   api.getCollections.mockResolvedValue([PARTY]);
 });
@@ -80,7 +83,7 @@ describe('RecipesPage — rendering', () => {
   });
 
   it('showsEmptyState_whenNothingMatches', async () => {
-    api.list.mockResolvedValue([]);
+    api.list.mockResolvedValue(page([]));
     renderWithProviders(<RecipesPage tab="cocktail" />);
 
     expect(await screen.findByText(/No recipes match your filters/)).toBeInTheDocument();
@@ -134,14 +137,14 @@ describe('RecipesPage — filter state lives in the URL', () => {
   });
 
   it('requestsMocktails_onTheMocktailRoute', async () => {
-    api.list.mockResolvedValue([]);
+    api.list.mockResolvedValue(page([]));
     renderWithProviders(<RecipesPage tab="mocktail" />, { route: '/mocktails' });
 
     await waitFor(() => expect(lastFilters()).toMatchObject({ isMocktail: true }));
   });
 
   it('drops_alcoholicIngredients_fromTheMocktailRequest', async () => {
-    api.list.mockResolvedValue([]);
+    api.list.mockResolvedValue(page([]));
     renderWithProviders(<RecipesPage tab="mocktail" />, {
       route: '/mocktails?ingredients=white rum,soda water',
     });
