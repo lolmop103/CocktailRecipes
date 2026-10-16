@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { RecipeFilters, SortBy, SortOrder } from '../types/index.js';
+import { clampFilters } from '../utils/filterLimits.js';
 
 export const DEFAULT_FILTERS: RecipeFilters = {
   search: '',
@@ -44,7 +45,8 @@ export function useFilterParams(isMocktail: boolean) {
     const excluded = searchParams.get('exclude');
     const collectionId = searchParams.get('collection');
 
-    return {
+    // Clamped so an old bookmark or a hand-edited link stays within the server's limits.
+    return clampFilters({
       search: searchParams.get('q') ?? '',
       ingredients: ingredients ? ingredients.split(',').filter(Boolean) : [],
       excludeIngredients: excluded ? excluded.split(',').filter(Boolean) : [],
@@ -54,7 +56,7 @@ export function useFilterParams(isMocktail: boolean) {
       sortOrder: parseSortOrder(searchParams.get('sortOrder')),
       isMocktail,
       ...(collectionId ? { collectionId } : {}),
-    };
+    });
   }, [searchParams, isMocktail]);
 
   const updateFilter = useCallback(

@@ -4,6 +4,7 @@ import type {
   IngredientMeta,
   Collection,
 } from '../types/index.js';
+import { MAX_FILTER_TERMS } from '@cocktail/shared/limits';
 import { IngredientSelector } from './IngredientSelector.js';
 import { ManageIngredientsPanel } from './ManageIngredientsPanel.js';
 import { StarRatingFilter } from './StarRatingFilter.js';
@@ -52,6 +53,7 @@ export const RecipeFilters = ({
 
       <div className="filter-section-header">
         <IngredientSelector
+          max={MAX_FILTER_TERMS}
           label="Ingredients"
           knownIngredients={knownIngredients}
           selected={filters.ingredients}
@@ -92,6 +94,7 @@ export const RecipeFilters = ({
       )}
 
       <IngredientSelector
+        max={MAX_FILTER_TERMS}
         label="Without"
         knownIngredients={knownIngredients}
         selected={filters.excludeIngredients}

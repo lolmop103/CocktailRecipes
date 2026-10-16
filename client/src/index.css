@@ -222,6 +222,11 @@ select {
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
+.filter-hint {
+  margin: 0;
+  font-size: var(--t-xs);
+  color: var(--ink-soft);
+}
 .filter-group input[type='search'],
 .filter-group input[type='text'],
 .filter-group select {

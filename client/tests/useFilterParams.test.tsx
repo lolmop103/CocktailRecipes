@@ -120,3 +120,13 @@ describe('useFilterParams — writing', () => {
     expect(result.current.filters.search).toBe('');
   });
 });
+
+describe('useFilterParams — limits', () => {
+  it('useFilterParams_urlWith25Ingredients_returns20', () => {
+    const many = Array.from({ length: 25 }, (_, i) => `gin${String(i)}`).join(',');
+
+    const { result } = renderAt(`/cocktails?ingredients=${many}`);
+
+    expect(result.current.filters.ingredients).toHaveLength(20);
+  });
+});
