@@ -1,8 +1,17 @@
+# The production image on this machine: http://localhost:3009 (HOST_PORT).
+# Needs ADMIN_USERNAME and ADMIN_PASSWORD_HASH in .env. For a server behind
+# Caddy use compose.prod.yaml instead (docs/deploy.md).
+#
+# Runs alongside the owner's other local stacks: its own project name (so
+# containers and the volume are cocktailrecipes-*) and a host port none of them
+# use — 3000 is taken, CurvyRoads has 3001–3003 and 5434, BinMark 5433 and 8080.
+name: cocktailrecipes
+
 services:
   app:
     build: .
     ports:
-      - '3000:3000'
+      - '${HOST_PORT:-3009}:3000'
     volumes:
       - cocktail-db:/data
     environment:
@@ -13,8 +22,9 @@ services:
       # Required in production: create the hash with `npm run hash-password --workspace=server`.
       ADMIN_USERNAME: ${ADMIN_USERNAME:?set ADMIN_USERNAME in .env}
       ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:?set ADMIN_PASSWORD_HASH in .env}
-      # The client is served by Express in production, so origin = same host
-      CLIENT_ORIGIN: http://localhost:3000
+      # Express serves the client too, so the site's origin is this host and port.
+      # Every login and change must come from it, so it follows HOST_PORT.
+      CLIENT_ORIGIN: http://localhost:${HOST_PORT:-3009}
     restart: unless-stopped
 
 volumes:

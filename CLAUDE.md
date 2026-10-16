@@ -59,7 +59,11 @@ docker build -t cocktail . && docker run -p 3105:3000 cocktail   # image smoke t
 - **Port 3000 is taken** by another Node process on this machine. `npm run dev`
   needs `PORT` in `.env` set to a free port, and the Vite proxy target in
   `client/vite.config.ts` is hard-coded to `http://localhost:3000` — see the open
-  items. Run the Docker image on another host port (`-p 3105:3000`).
+  items.
+- **Docker ports on this machine:** CocktailRecipes `docker compose up` →
+  http://localhost:3009 (`HOST_PORT`, project `cocktailrecipes`). Taken by the
+  other projects: 3000 (a Node process), CurvyRoads 3001–3003 and 5434, BinMark
+  5433 and 8080. Keep new stacks off these.
 - **npm 11 `allowScripts`:** `npm ci` warns that the install scripts of
   `better-sqlite3` and `esbuild` are not covered; on 2026-10-15 both native
   binaries were present after `npm ci` anyway.
