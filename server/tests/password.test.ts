@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { scryptSync } from 'node:crypto';
 import {
+  adminHashProblem,
   checkNewPassword,
   formatEnvLine,
   hashPassword,
@@ -75,6 +76,44 @@ describe('test-only admin hash', () => {
     const { TEST_ADMIN, TEST_ADMIN_PASSWORD_HASH } = await import('./helpers/admin.js');
 
     expect(await verifyPassword(TEST_ADMIN.password, TEST_ADMIN_PASSWORD_HASH)).toBe(true);
+  });
+});
+
+describe('adminHashProblem', () => {
+  it('adminHashProblem_hashFromHashPassword_null', async () => {
+    expect(
+      adminHashProblem(await hashPassword('a-real-password'), { allowWeak: false }),
+    ).toBeNull();
+  });
+
+  it('adminHashProblem_testHash_tooCheap', () => {
+    expect(adminHashProblem(lowCostHash('x'), { allowWeak: false })).toMatch(/too cheap/);
+  });
+
+  it('adminHashProblem_lowerR_tooCheap', () => {
+    expect(adminHashProblem('scrypt$32768$4$1$AA==$AA==', { allowWeak: false })).toMatch(
+      /too cheap/,
+    );
+  });
+
+  it('adminHashProblem_testHashWithAllowWeak_null', () => {
+    expect(adminHashProblem(lowCostHash('x'), { allowWeak: true })).toBeNull();
+  });
+
+  it('adminHashProblem_nNotPowerOfTwo_cannotBeVerifiedEvenWithAllowWeak', () => {
+    expect(adminHashProblem('scrypt$1000$8$1$AA==$AA==', { allowWeak: true })).toMatch(
+      /cannot be verified/,
+    );
+  });
+
+  it('adminHashProblem_costBeyondMemoryCap_cannotBeVerified', () => {
+    expect(adminHashProblem('scrypt$1048576$8$1$AA==$AA==', { allowWeak: false })).toMatch(
+      /cannot be verified/,
+    );
+  });
+
+  it('adminHashProblem_malformed_named', () => {
+    expect(adminHashProblem('plaintext', { allowWeak: true })).toMatch(/hash-password/);
   });
 });
 

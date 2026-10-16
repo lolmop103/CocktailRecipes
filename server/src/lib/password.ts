@@ -63,6 +63,27 @@ export async function verifyPassword(password: string, encoded: string): Promise
 }
 
 /**
+ * Why `encoded` cannot serve as the admin's hash, or null when it can. A hash
+ * that cannot be verified would turn every login into a silent 401, so it is
+ * always refused. One cheaper than `hashPassword` makes — such as the public
+ * test-only hash — is refused unless `allowWeak` (test harnesses only).
+ */
+export function adminHashProblem(encoded: string, { allowWeak }: { allowWeak: boolean }) {
+  const match = FORMAT.exec(encoded);
+  if (!match) return 'must be a hash from `npm run hash-password`';
+  const [N, r, p] = match.slice(1, 4).map(Number) as [number, number, number];
+
+  const powerOfTwo = N > 1 && (N & (N - 1)) === 0;
+  if (!powerOfTwo || r < 1 || p < 1 || 128 * N * r > MAX_MEMORY) {
+    return 'cannot be verified (unusable scrypt cost); create one with `npm run hash-password`';
+  }
+  if (!allowWeak && (N < COST.N || r < COST.r || p < COST.p)) {
+    return 'is too cheap to compute, like the test-only hash; create one with `npm run hash-password`';
+  }
+  return null;
+}
+
+/**
  * The line to paste into `.env`. Single-quoted: Docker Compose interpolates `$`
  * in .env values, which would mangle the hash. Base64 never contains a quote.
  */
