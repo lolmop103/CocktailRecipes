@@ -3,6 +3,9 @@ import { UnitToggle } from './UnitToggle.js';
 
 interface Props {
   filters: Pick<RecipeFilters, 'sortBy' | 'sortOrder'>;
+  /** Recipes on screen so far. */
+  shownCount: number;
+  /** Recipes matching the filters, loaded or not. */
   totalCount: number;
   unit: Unit;
   onToggleUnit: () => void;
@@ -15,15 +18,22 @@ const SORT_OPTIONS: { value: SortBy; label: string }[] = [
   { value: 'ingredientCount', label: 'Ingredient count' },
 ];
 
-export const RecipeSortBar = ({ filters, totalCount, unit, onToggleUnit, onChange }: Props) => {
+export const RecipeSortBar = ({
+  filters,
+  shownCount,
+  totalCount,
+  unit,
+  onToggleUnit,
+  onChange,
+}: Props) => {
   const toggleOrder = () => {
     onChange('sortOrder', filters.sortOrder === 'asc' ? 'desc' : 'asc');
   };
 
   return (
     <div className="sort-bar">
-      <span className="result-count">
-        {totalCount} {totalCount === 1 ? 'recipe' : 'recipes'}
+      <span className="result-count" aria-live="polite">
+        {`Showing ${String(shownCount)} of ${String(totalCount)} ${totalCount === 1 ? 'recipe' : 'recipes'}`}
       </span>
       <div className="sort-controls">
         <label htmlFor="sortBy">Sort by</label>

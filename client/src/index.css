@@ -751,6 +751,37 @@ select {
   transform: translateY(-1px);
 }
 
+/* -- Load more ---------------------------- */
+.load-more {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem 0 2rem;
+}
+.load-more__sentinel {
+  width: 100%;
+  height: 1px;
+}
+.btn-load-more {
+  padding: 0.5rem 1.25rem;
+  background: transparent;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: var(--t-sm);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.load-more__status {
+  margin: 0 0 0.75rem;
+  color: var(--ink-soft);
+  font-size: var(--t-sm);
+}
+.btn-load-more[aria-disabled='true'] {
+  opacity: 0.6;
+  cursor: progress;
+}
+
 /* -- Dialog / Modal ---------------------- */
 .modal-overlay {
   position: fixed;

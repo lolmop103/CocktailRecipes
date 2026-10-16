@@ -7,7 +7,10 @@ import type {
   RecipeFilters,
   UpdateRecipeInput as RecipeUpdate,
 } from '@cocktail/shared';
-import { compileRecipeQuery } from './recipeQuery.js';
+import { PAGE_SIZE_DEFAULT } from '@cocktail/shared/limits';
+import { compileRecipeQuery, type PageRequest } from './recipeQuery.js';
+
+const FIRST_PAGE: PageRequest = { limit: PAGE_SIZE_DEFAULT, offset: 0 };
 
 // ---------------------------------------------------------------------------
 // Row types (SQLite returns plain objects)
@@ -187,10 +190,15 @@ export const recipeStore = {
    * actually used. The statement is built per call because the shape depends
    * on how many ingredient terms were selected; values are always bound.
    */
-  query(filters: RecipeFilters, collectionId?: string): Recipe[] {
-    const { sql, params } = compileRecipeQuery(filters, collectionId);
-    const rows = db.prepare(sql).all(...params) as RecipeRow[];
-    return hydrateMany(rows);
+  query(
+    filters: RecipeFilters,
+    collectionId?: string,
+    page: PageRequest = FIRST_PAGE,
+  ): { items: Recipe[]; total: number } {
+    const { selectSql, countSql, params } = compileRecipeQuery(filters, collectionId);
+    const rows = db.prepare(selectSql).all(...params, page.limit, page.offset) as RecipeRow[];
+    const { total } = db.prepare(countSql).get(...params) as { total: number };
+    return { items: hydrateMany(rows), total };
   },
 
   getById(id: string): Recipe | undefined {

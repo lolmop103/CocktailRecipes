@@ -159,7 +159,7 @@ async function healthDuringFlood(url) {
 
 const include = INGREDIENTS.slice(0, 20).join(',');
 const exclude = INGREDIENTS.slice(20, 40).join(',');
-const worstUrl = `${BASE}/recipes?ingredients=${include}&excludeIngredients=${exclude}&onlySelectedIngredients=true&sortBy=ingredientCount`;
+const worstUrl = `${BASE}/recipes?ingredients=${include}&excludeIngredients=${exclude}&onlySelectedIngredients=true&sortBy=ingredientCount&limit=48`;
 const typicalUrl = `${BASE}/recipes?ingredients=rum,lime&excludeIngredients=mint&sortBy=rating`;
 
 await seed();
