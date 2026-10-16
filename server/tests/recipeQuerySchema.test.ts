@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
+import request from 'supertest';
 import { recipeQuerySchema } from '@cocktail/shared';
+import { createApp } from '../src/app.js';
 
 /** "gin0,gin1,…" — n distinct terms. */
 const terms = (n: number) => Array.from({ length: n }, (_, i) => `gin${String(i)}`).join(',');
@@ -76,5 +78,20 @@ describe('recipeQuerySchema', () => {
 
     expect(result.data?.ingredients).toEqual([]);
     expect(result.data?.excludeIngredients).toEqual([]);
+  });
+});
+
+describe('LIKE wildcards in filter values', () => {
+  it('ingredients_percentTerm_matchesOnlyALiteralPercent', async () => {
+    const res = await request(createApp()).get('/api/recipes?ingredients=%25');
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([]);
+  });
+
+  it('search_underscore_matchesOnlyALiteralUnderscore', async () => {
+    const res = await request(createApp()).get('/api/recipes?search=_');
+
+    expect(res.body).toEqual([]);
   });
 });

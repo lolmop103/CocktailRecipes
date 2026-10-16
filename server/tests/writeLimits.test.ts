@@ -167,3 +167,18 @@ describe('collection and ingredient write limits', () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe('ingredient names with a percent sign', () => {
+  it('ingredients_patch_percentInName_classifiesTheLiteralName', async () => {
+    await request(app)
+      .post('/api/recipes')
+      .send(recipe({ ingredients: [{ name: '100% agave' }] }));
+
+    const res = await request(app)
+      .patch(`/api/ingredients/${encodeURIComponent('100% agave')}`)
+      .send({ isAlcoholic: true });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ name: '100% agave', isAlcoholic: true });
+  });
+});

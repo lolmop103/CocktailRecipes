@@ -11,7 +11,17 @@ export interface CompiledQuery {
  * it matches what the UI promises without a lower() call that would defeat the
  * index on recipe_ingredients(name).
  */
-const INGREDIENT_LIKE = "ri.name LIKE '%' || ? || '%'";
+const LIKE_ESCAPE = "ESCAPE '\\'";
+const INGREDIENT_LIKE = `ri.name LIKE '%' || ? || '%' ${LIKE_ESCAPE}`;
+
+/**
+ * A filter value is matched literally: '%' and '_' typed by a visitor must not
+ * act as wildcards, which would both match the wrong recipes and let a term be
+ * crafted into an expensive pattern.
+ */
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, '\\$&');
+}
 
 /**
  * ORDER BY fragments, keyed by sort column.
@@ -41,8 +51,8 @@ export function compileRecipeQuery(filters: RecipeFilters, collectionId?: string
   const params: (string | number)[] = [];
 
   if (filters.search) {
-    where.push("r.name LIKE '%' || ? || '%'");
-    params.push(filters.search);
+    where.push(`r.name LIKE '%' || ? || '%' ${LIKE_ESCAPE}`);
+    params.push(escapeLike(filters.search));
   }
 
   // Include: the recipe must contain ALL of these, so one EXISTS each.
@@ -50,7 +60,7 @@ export function compileRecipeQuery(filters: RecipeFilters, collectionId?: string
     where.push(
       `EXISTS (SELECT 1 FROM recipe_ingredients ri WHERE ri.recipe_id = r.id AND ${INGREDIENT_LIKE})`,
     );
-    params.push(ingredient);
+    params.push(escapeLike(ingredient));
   }
 
   // Exclude: the recipe must contain NONE of these.
@@ -58,7 +68,7 @@ export function compileRecipeQuery(filters: RecipeFilters, collectionId?: string
     where.push(
       `NOT EXISTS (SELECT 1 FROM recipe_ingredients ri WHERE ri.recipe_id = r.id AND ${INGREDIENT_LIKE})`,
     );
-    params.push(ingredient);
+    params.push(escapeLike(ingredient));
   }
 
   // "Only these": no ingredient may fall outside the selected set. Expressed as
@@ -70,7 +80,7 @@ export function compileRecipeQuery(filters: RecipeFilters, collectionId?: string
       'NOT EXISTS (SELECT 1 FROM recipe_ingredients ri' +
         ` WHERE ri.recipe_id = r.id AND NOT (${covered}))`,
     );
-    params.push(...allowed);
+    params.push(...allowed.map(escapeLike));
   }
 
   if (filters.minRating !== undefined) {
