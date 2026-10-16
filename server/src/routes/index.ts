@@ -3,10 +3,16 @@ import { healthRouter } from './health.js';
 import { recipesRouter } from './recipes.js';
 import { ingredientsRouter } from './ingredients.js';
 import { collectionsRouter } from './collections.js';
+import { authRouter } from './auth.js';
+import { session } from '../middleware/session.js';
 
 export const router = Router();
 
+// Every API request learns whether it comes from the admin before any route runs.
+router.use(session);
+
 router.use('/health', healthRouter);
+router.use('/auth', authRouter);
 router.use('/recipes', recipesRouter);
 router.use('/ingredients', ingredientsRouter);
 router.use('/collections', collectionsRouter);

@@ -35,3 +35,13 @@ export class ValidationError extends AppError {
 export function isAppError(err: unknown): err is AppError {
   return err instanceof AppError;
 }
+
+/** No valid admin session (or wrong credentials at login). */
+export class UnauthorizedError extends AppError {
+  readonly status = 401;
+}
+
+/** A feature that needs configuration the server does not have. */
+export class ServiceUnavailableError extends AppError {
+  readonly status = 503;
+}
