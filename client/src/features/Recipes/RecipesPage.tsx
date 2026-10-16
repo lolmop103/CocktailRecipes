@@ -219,7 +219,8 @@ export const RecipesPage = ({ tab }: Props) => {
         </main>
       </div>
 
-      {isAdmin && showAddModal && (
+      {/* Not gated on isAdmin: a session ending mid-edit must not discard the form. */}
+      {showAddModal && (
         <AddRecipeModal
           knownIngredients={knownIngredients}
           defaultIsMocktail={isMocktail}

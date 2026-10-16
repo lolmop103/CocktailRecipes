@@ -412,9 +412,61 @@ describe('RecipesPage — session expiry while editing', () => {
     fireEvent.click(await screen.findByLabelText('Edit Mojito'));
     const dialog = screen.getByRole('dialog', { name: 'Edit recipe' });
 
+    // The server refused the write because the session ended; /me now agrees.
+    authApi.me.mockResolvedValue({ authenticated: false });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Save Changes' }));
 
     expect(await screen.findByText('Your session has expired.')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Edit recipe' })).toBeInTheDocument();
+  });
+});
+
+describe('RecipesPage — dialogs survive the session ending', () => {
+  /** The page as the app mounts it: with the banner that reacts to a refused write. */
+  async function renderWithBanner() {
+    const { SessionExpiredBanner } =
+      await import('../src/features/Auth/components/SessionExpiredBanner.js');
+    renderWithProviders(
+      <>
+        <SessionExpiredBanner />
+        <RecipesPage tab="cocktail" />
+      </>,
+      { route: '/cocktails' },
+    );
+    await screen.findByRole('button', { name: '+ New Recipe' });
+  }
+
+  it('RecipesPage_create401AndSessionGone_newRecipeDialogStaysOpen', async () => {
+    const { ApiError: RealApiError } = await import('../src/lib/http.js');
+    api.create.mockRejectedValue(new RealApiError(401, 'Log in to make changes', []));
+    await renderWithBanner();
+    fireEvent.click(screen.getByRole('button', { name: '+ New Recipe' }));
+    const dialog = screen.getByRole('dialog', { name: 'Add new recipe' });
+    fireEvent.change(within(dialog).getByLabelText('Name *'), { target: { value: 'Typed Sour' } });
+    fireEvent.change(within(dialog).getByRole('combobox', { name: 'Ingredient 1 name' }), {
+      target: { value: 'gin' },
+    });
+    authApi.me.mockResolvedValue({ authenticated: false });
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Create Recipe' }));
+
+    await waitFor(() => expect(api.create).toHaveBeenCalled());
+    await waitFor(() => expect(authApi.me.mock.calls.length).toBeGreaterThan(1));
+    expect(screen.getByRole('dialog', { name: 'Add new recipe' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Name *')).toHaveValue('Typed Sour');
+  });
+
+  it('RecipesPage_update401AndSessionGone_editDialogStaysOpen', async () => {
+    const { ApiError: RealApiError } = await import('../src/lib/http.js');
+    api.update.mockRejectedValue(new RealApiError(401, 'Log in to make changes', []));
+    await renderWithBanner();
+    fireEvent.click(screen.getByLabelText('Edit Mojito'));
+    const dialog = screen.getByRole('dialog', { name: 'Edit recipe' });
+    authApi.me.mockResolvedValue({ authenticated: false });
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save Changes' }));
+
+    await waitFor(() => expect(authApi.me.mock.calls.length).toBeGreaterThan(1));
     expect(screen.getByRole('dialog', { name: 'Edit recipe' })).toBeInTheDocument();
   });
 });
