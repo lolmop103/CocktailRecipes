@@ -19,6 +19,9 @@ const api = {
   deleteCollection: vi.fn(),
 };
 
+const authApi = { me: vi.fn(), login: vi.fn(), logout: vi.fn() };
+vi.mock('../src/features/Auth/services/authApi.js', () => ({ authApi }));
+
 vi.mock('../src/features/Recipes/services/api.js', () => ({
   recipesApi: api,
   ApiError: class ApiError extends Error {
@@ -52,6 +55,7 @@ function lastFilters() {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  authApi.me.mockResolvedValue({ authenticated: true, username: 'admin' });
   api.list.mockResolvedValue(page([MOJITO]));
   api.getIngredients.mockResolvedValue(INGREDIENTS);
   api.getCollections.mockResolvedValue([PARTY]);
@@ -64,6 +68,7 @@ afterEach(() => {
 async function renderPage(route = '/cocktails') {
   const view = renderWithProviders(<RecipesPage tab="cocktail" />, { route });
   await screen.findByText('Mojito');
+  await screen.findByRole('button', { name: '+ New Recipe' });
   return view;
 }
 
@@ -367,5 +372,49 @@ describe('RecipesPage — tab navigation', () => {
         excludeIngredients: ['soda water'],
       }),
     );
+  });
+});
+
+describe('RecipesPage — who may edit', () => {
+  it('RecipesPage_loggedOut_noNewRecipeButtonAndReadOnlyStars', async () => {
+    authApi.me.mockResolvedValue({ authenticated: false });
+    renderWithProviders(<RecipesPage tab="cocktail" />, { route: '/cocktails' });
+    await screen.findByText('Mojito');
+    await waitFor(() => expect(authApi.me).toHaveBeenCalled());
+
+    expect(screen.queryByRole('button', { name: '+ New Recipe' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Edit Mojito')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Rate Mojito/ })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Manage ingredient classifications')).not.toBeInTheDocument();
+  });
+
+  it('RecipesPage_loggedIn_showsNewRecipeButton', async () => {
+    await renderPage();
+
+    expect(screen.getByRole('button', { name: '+ New Recipe' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Manage ingredient classifications')).toBeInTheDocument();
+  });
+});
+
+describe('RecipesPage — session expiry while editing', () => {
+  it('RecipesPage_mutation401_showsBannerAndKeepsDialogOpen', async () => {
+    const { ApiError: RealApiError } = await import('../src/lib/http.js');
+    const { SessionExpiredBanner } =
+      await import('../src/features/Auth/components/SessionExpiredBanner.js');
+    api.update.mockRejectedValue(new RealApiError(401, 'Log in to make changes', []));
+    renderWithProviders(
+      <>
+        <SessionExpiredBanner />
+        <RecipesPage tab="cocktail" />
+      </>,
+      { route: '/cocktails' },
+    );
+    fireEvent.click(await screen.findByLabelText('Edit Mojito'));
+    const dialog = screen.getByRole('dialog', { name: 'Edit recipe' });
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save Changes' }));
+
+    expect(await screen.findByText('Your session has expired.')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Edit recipe' })).toBeInTheDocument();
   });
 });
