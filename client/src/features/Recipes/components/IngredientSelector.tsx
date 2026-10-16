@@ -10,6 +10,8 @@ interface Props {
   hideAlcoholic?: boolean;
   /** Names to keep out of the dropdown — typically the other picker's choices. */
   unavailable?: string[];
+  /** Most terms the server accepts; at the limit the input is disabled with a hint. */
+  max?: number;
   onChange: (values: string[]) => void;
 }
 
@@ -19,6 +21,7 @@ export const IngredientSelector = ({
   selected,
   hideAlcoholic = false,
   unavailable = [],
+  max,
   onChange,
 }: Props) => {
   const [search, setSearch] = useState('');
@@ -26,6 +29,8 @@ export const IngredientSelector = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const listboxId = useId();
   const optionId = (index: number) => `${listboxId}-option-${index}`;
+  const hintId = `${listboxId}-hint`;
+  const atMax = max !== undefined && selected.length >= max;
 
   const close = useCallback(() => {
     setIsOpen(false);
@@ -111,6 +116,8 @@ export const IngredientSelector = ({
           aria-expanded={isOpen}
           aria-controls={listboxId}
           aria-autocomplete="list"
+          disabled={atMax}
+          {...(atMax ? { 'aria-describedby': hintId } : {})}
           {...(isOpen && activeIndex >= 0
             ? { 'aria-activedescendant': optionId(activeIndex) }
             : {})}
@@ -143,6 +150,12 @@ export const IngredientSelector = ({
           </div>
         )}
       </div>
+
+      {atMax && (
+        <p id={hintId} className="filter-hint">
+          {`Up to ${String(max)} ingredients`}
+        </p>
+      )}
     </div>
   );
 };

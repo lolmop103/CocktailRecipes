@@ -51,7 +51,7 @@ describe('production boot', () => {
 
     const res = await request(app).get('/api/recipes');
     expect(res.status).toBe(200);
-    expect(res.body).toHaveLength(8);
+    expect(res.body.items).toHaveLength(8);
   });
 
   it('servesTheClientShell_forDeepLinks', async () => {

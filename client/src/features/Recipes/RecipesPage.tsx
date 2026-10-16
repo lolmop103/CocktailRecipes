@@ -1,9 +1,10 @@
-import { useState, useId, useMemo } from 'react';
+import { useCallback, useState, useId, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { RecipeFilters as RecipeFiltersPanel } from './components/RecipeFilters.js';
 import { RecipeSortBar } from './components/RecipeSortBar.js';
 import { RecipeCard } from './components/RecipeCard.js';
 import { AddRecipeModal } from './components/AddRecipeModal.js';
+import { LoadMore } from './components/LoadMore.js';
 import { RecipeTabs, type RecipeTab } from './components/RecipeTabs.js';
 import { useUnit } from './hooks/useUnit.js';
 import { useFilterParams } from './hooks/useFilterParams.js';
@@ -17,14 +18,18 @@ import {
   useDeleteRecipe,
   useIngredientsQuery,
   useRateRecipe,
-  useRecipesQuery,
+  useRecipePages,
   useRemoveFromCollection,
   useUpdateRecipe,
 } from './hooks/useRecipeQueries.js';
-import type { IngredientMeta, Recipe } from './types/index.js';
+import type { Collection, IngredientMeta, Recipe } from './types/index.js';
+import { flattenPages } from './utils/pages.js';
 
 /** Long enough to swallow a burst of typing, short enough to feel live. */
 const SEARCH_DEBOUNCE_MS = 250;
+
+/** One empty list for every render, so memoised cards see the same prop. */
+const NO_COLLECTIONS: Collection[] = [];
 
 interface Props {
   tab: RecipeTab;
@@ -48,7 +53,7 @@ export const RecipesPage = ({ tab }: Props) => {
     () => ingredientsQuery.data ?? [],
     [ingredientsQuery.data],
   );
-  const collections = collectionsQuery.data ?? [];
+  const collections = collectionsQuery.data ?? NO_COLLECTIONS;
 
   // Only the search term is debounced; every other filter applies at once.
   const debouncedSearch = useDebouncedValue(filters.search, SEARCH_DEBOUNCE_MS);
@@ -67,8 +72,17 @@ export const RecipesPage = ({ tab }: Props) => {
     return { ...filters, search: debouncedSearch, ingredients };
   }, [filters, debouncedSearch, isMocktail, knownIngredients]);
 
-  const recipesQuery = useRecipesQuery(queryFilters);
-  const recipes = recipesQuery.data ?? [];
+  const recipesQuery = useRecipePages(queryFilters);
+  const { recipes, total } = useMemo(
+    () => flattenPages(recipesQuery.data?.pages ?? []),
+    [recipesQuery.data],
+  );
+  const { fetchNextPage } = recipesQuery;
+  const loadMore = useCallback(() => {
+    // Never cancel an in-flight refetch: its fresh offsets are what the next page
+    // must start from after a delete or create.
+    void fetchNextPage({ cancelRefetch: false });
+  }, [fetchNextPage]);
 
   const createRecipe = useCreateRecipe();
   const updateRecipe = useUpdateRecipe();
@@ -79,17 +93,41 @@ export const RecipesPage = ({ tab }: Props) => {
   const addToCollection = useAddToCollection();
   const removeFromCollection = useRemoveFromCollection();
 
-  const message = recipesQuery.isError
-    ? 'Could not load recipes. Is the server running?'
-    : ingredientsQuery.isError
-      ? 'Could not load the ingredient list.'
-      : collectionsQuery.isError
-        ? 'Could not load collections.'
-        : deleteRecipe.isError
-          ? 'Could not delete that recipe.'
-          : rateRecipe.isError
-            ? 'Failed to save rating.'
-            : null;
+  // Stable handlers: `mutate` and state setters keep their identity across
+  // renders, so the memoised cards are not re-rendered when a page is appended.
+  const { mutate: rate } = rateRecipe;
+  const { mutate: remove } = deleteRecipe;
+  const { mutate: addTo } = addToCollection;
+  const { mutate: removeFrom } = removeFromCollection;
+  const { mutate: createNamedCollection } = createCollection;
+  const handleRate = useCallback((id: string, rating: number) => rate({ id, rating }), [rate]);
+  const handleDelete = useCallback((id: string) => remove(id), [remove]);
+  const handleAddToCollection = useCallback(
+    (collectionId: string, recipeId: string) => addTo({ collectionId, recipeId }),
+    [addTo],
+  );
+  const handleRemoveFromCollection = useCallback(
+    (collectionId: string, recipeId: string) => removeFrom({ collectionId, recipeId }),
+    [removeFrom],
+  );
+  const handleCreateCollection = useCallback(
+    (name: string) => createNamedCollection(name),
+    [createNamedCollection],
+  );
+
+  // A failed next page is reported on the Show more button, not as a page error.
+  const message =
+    recipesQuery.isError && !recipesQuery.isFetchNextPageError
+      ? 'Could not load recipes. Is the server running?'
+      : ingredientsQuery.isError
+        ? 'Could not load the ingredient list.'
+        : collectionsQuery.isError
+          ? 'Could not load collections.'
+          : deleteRecipe.isError
+            ? 'Could not delete that recipe.'
+            : rateRecipe.isError
+              ? 'Failed to save rating.'
+              : null;
 
   const handleClassifyIngredients = async (results: { name: string; isAlcoholic: boolean }[]) => {
     await Promise.all(results.map((r) => classifyIngredient.mutateAsync(r)));
@@ -124,7 +162,8 @@ export const RecipesPage = ({ tab }: Props) => {
           <div className="recipes-main__toolbar">
             <RecipeSortBar
               filters={filters}
-              totalCount={recipes.length}
+              shownCount={recipes.length}
+              totalCount={total}
               unit={unit}
               onToggleUnit={toggleUnit}
               onChange={updateFilter}
@@ -149,19 +188,24 @@ export const RecipesPage = ({ tab }: Props) => {
                 recipe={recipe}
                 unit={unit}
                 collections={collections}
-                onRate={(id, rating) => rateRecipe.mutate({ id, rating })}
-                onEdit={() => setEditingRecipe(recipe)}
-                onDelete={() => deleteRecipe.mutate(recipe.id)}
-                onAddToCollection={(collectionId, recipeId) =>
-                  addToCollection.mutate({ collectionId, recipeId })
-                }
-                onRemoveFromCollection={(collectionId, recipeId) =>
-                  removeFromCollection.mutate({ collectionId, recipeId })
-                }
-                onCreateCollection={(name) => createCollection.mutate(name)}
+                onRate={handleRate}
+                onEdit={setEditingRecipe}
+                onDelete={handleDelete}
+                onAddToCollection={handleAddToCollection}
+                onRemoveFromCollection={handleRemoveFromCollection}
+                onCreateCollection={handleCreateCollection}
               />
             ))}
           </div>
+
+          <LoadMore
+            hasMore={recipesQuery.hasNextPage}
+            // Any fetch, refetches included, pauses auto-loading: a next page
+            // requested from stale offsets could skip a recipe.
+            isLoading={recipesQuery.isFetching}
+            isError={recipesQuery.isFetchNextPageError}
+            onLoadMore={loadMore}
+          />
         </main>
       </div>
 

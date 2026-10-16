@@ -1,5 +1,7 @@
+import { PAGE_SIZE_DEFAULT } from '@cocktail/shared/limits';
 import type {
   Recipe,
+  RecipePage,
   RecipeFilters,
   IngredientMeta,
   Collection,
@@ -53,7 +55,7 @@ function jsonInit(method: string, body: unknown, signal?: AbortSignal): RequestI
   };
 }
 
-function buildQuery(filters: RecipeFilters): string {
+function buildQuery(filters: RecipeFilters, offset: number): string {
   const params = new URLSearchParams();
   if (filters.search) params.set('search', filters.search);
   if (filters.ingredients.length > 0) params.set('ingredients', filters.ingredients.join(','));
@@ -68,12 +70,18 @@ function buildQuery(filters: RecipeFilters): string {
   params.set('sortOrder', filters.sortOrder);
   if (filters.isMocktail !== undefined) params.set('isMocktail', String(filters.isMocktail));
   if (filters.collectionId !== undefined) params.set('collectionId', filters.collectionId);
+  params.set('limit', String(PAGE_SIZE_DEFAULT));
+  params.set('offset', String(offset));
   return params.toString();
 }
 
 export const recipesApi = {
-  list(filters: RecipeFilters, signal?: AbortSignal): Promise<Recipe[]> {
-    return request<Recipe[]>(`${BASE}?${buildQuery(filters)}`, signal ? { signal } : undefined);
+  /** One page of recipes, starting at `offset`. */
+  list(filters: RecipeFilters, offset = 0, signal?: AbortSignal): Promise<RecipePage> {
+    return request<RecipePage>(
+      `${BASE}?${buildQuery(filters, offset)}`,
+      signal ? { signal } : undefined,
+    );
   },
 
   get(id: string): Promise<Recipe> {

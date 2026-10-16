@@ -1,13 +1,15 @@
 import {
   keepPreviousData,
+  useInfiniteQuery,
   useMutation,
   useQuery,
   useQueryClient,
   type QueryClient,
 } from '@tanstack/react-query';
-import type { Collection, IngredientMeta, Recipe } from '../types/index.js';
+import type { Collection, IngredientMeta } from '../types/index.js';
 import type { CreateRecipePayload, RecipeFilters, RecipeUpdatePayload } from '../types/index.js';
 import { recipesApi } from '../services/api.js';
+import { removeRecipeFromPages, replaceRecipeInPages, type RecipePages } from '../utils/pages.js';
 
 /**
  * Query keys in one place so invalidation cannot drift from the queries it is
@@ -24,12 +26,19 @@ function invalidateRecipes(client: QueryClient): Promise<void> {
   return client.invalidateQueries({ queryKey: queryKeys.allRecipes });
 }
 
-export function useRecipesQuery(filters: RecipeFilters) {
-  return useQuery({
+/**
+ * The recipe list, a page at a time. The filters are the key, so a filter
+ * change starts again at offset 0 and pages of the old filters are never mixed
+ * in; invalidating `queryKeys.allRecipes` refetches every loaded page.
+ */
+export function useRecipePages(filters: RecipeFilters) {
+  return useInfiniteQuery({
     queryKey: queryKeys.recipes(filters),
     // React Query hands the signal in, so a superseded request is aborted and
     // its stale result can never replace a newer one.
-    queryFn: ({ signal }) => recipesApi.list(filters, signal),
+    queryFn: ({ pageParam, signal }) => recipesApi.list(filters, pageParam, signal),
+    initialPageParam: 0,
+    getNextPageParam: (last) => last.nextOffset ?? undefined,
     // Keep showing the previous results while a new filter loads, instead of
     // flashing an empty grid on every keystroke.
     placeholderData: keepPreviousData,
@@ -86,8 +95,8 @@ export function useRateRecipe() {
     onSuccess: (updated) => {
       // The rating is a small, local change — patch the cache in place rather
       // than refetching every list the recipe appears in.
-      client.setQueriesData<Recipe[]>({ queryKey: queryKeys.allRecipes }, (current) =>
-        current?.map((r) => (r.id === updated.id ? updated : r)),
+      client.setQueriesData<RecipePages>({ queryKey: queryKeys.allRecipes }, (current) =>
+        replaceRecipeInPages(current, updated),
       );
     },
   });
@@ -99,8 +108,8 @@ export function useDeleteRecipe() {
     mutationFn: (id: string) => recipesApi.delete(id),
     onSuccess: async (_result, id) => {
       // The server drops the recipe from every collection, so both caches move.
-      client.setQueriesData<Recipe[]>({ queryKey: queryKeys.allRecipes }, (current) =>
-        current?.filter((r) => r.id !== id),
+      client.setQueriesData<RecipePages>({ queryKey: queryKeys.allRecipes }, (current) =>
+        removeRecipeFromPages(current, id),
       );
       client.setQueryData<Collection[]>(queryKeys.collections, (current) =>
         current?.map((c) => ({ ...c, recipeIds: c.recipeIds.filter((rid) => rid !== id) })),

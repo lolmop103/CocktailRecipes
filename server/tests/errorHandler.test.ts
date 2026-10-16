@@ -33,15 +33,37 @@ function fieldErrorsOf(fn: () => unknown): { path: string; message: string }[] {
 
 describe('errorHandler', () => {
   const logError = vi.spyOn(logger, 'error').mockImplementation(() => undefined);
+  const logWarn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
 
-  beforeEach(() => logError.mockClear());
+  beforeEach(() => {
+    logError.mockClear();
+    logWarn.mockClear();
+  });
 
-  it('translatesNotFound_to404_withoutLogging', () => {
+  it('translatesNotFound_to404_withoutAnErrorLog', () => {
     const res = run(new NotFoundError('Recipe', '42'));
 
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.json).toHaveBeenCalledWith({ status: 404, message: 'Recipe not found: 42' });
     expect(logError).not.toHaveBeenCalled();
+  });
+
+  it('clientError_logsOneWarnLineWithoutStack', () => {
+    run(new ValidationError([{ path: 'search', message: 'Too big' }]));
+
+    expect(logWarn).toHaveBeenCalledTimes(1);
+    expect(logWarn).toHaveBeenCalledWith('Request rejected', {
+      method: 'GET',
+      path: '/api/test',
+      status: 400,
+      message: 'Validation failed',
+    });
+  });
+
+  it('serverSideAppError_noWarnLine', () => {
+    run(new UpstreamError('down'));
+
+    expect(logWarn).not.toHaveBeenCalled();
   });
 
   it('notFound_withoutId_omitsTheColon', () => {

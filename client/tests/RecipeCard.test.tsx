@@ -104,7 +104,7 @@ describe('RecipeCard', () => {
       />,
     );
     fireEvent.click(screen.getByLabelText('Edit Negroni'));
-    expect(onEdit).toHaveBeenCalledTimes(1);
+    expect(onEdit).toHaveBeenCalledWith(fullRecipe);
   });
 
   it('calls_onDelete_afterConfirmation', () => {
@@ -120,7 +120,7 @@ describe('RecipeCard', () => {
       />,
     );
     fireEvent.click(screen.getByLabelText('Delete Negroni'));
-    expect(onDelete).toHaveBeenCalledTimes(1);
+    expect(onDelete).toHaveBeenCalledWith(fullRecipe.id);
     vi.unstubAllGlobals();
   });
 

@@ -21,7 +21,8 @@
     "knip": "knip",
     "verify": "npm run format:check && npm run lint && npm run typecheck && npm run knip && npm run test:coverage",
     "test:coverage": "npm run test:coverage --workspace=server && npm run test:coverage --workspace=client",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "probe": "node scripts/load-probe.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",

@@ -11,24 +11,43 @@ beforeEach(() => {
 });
 
 describe('GET /api/recipes', () => {
+  /** "x0,x1,…" — n distinct ingredient terms. */
+  const terms = (n: number) => Array.from({ length: n }, (_, i) => `x${String(i)}`).join(',');
+  const SLOW_REQUEST_MS = 200;
+
+  it('get_repeatedSearchKey_returns400', async () => {
+    const res = await request(app).get('/api/recipes?search=a&search=b');
+
+    expect(res.status).toBe(400);
+  });
+
+  it('get_twentyOneExcludeTerms_returns400NotSlow', async () => {
+    const started = Date.now();
+
+    const res = await request(app).get(`/api/recipes?excludeIngredients=${terms(21)}`);
+
+    expect(res.status).toBe(400);
+    expect(Date.now() - started).toBeLessThan(SLOW_REQUEST_MS);
+  });
+
   it('returns_allRecipes_byDefault', async () => {
     const res = await request(app).get('/api/recipes');
     expect(res.status).toBe(200);
-    expect(Array.isArray(res.body)).toBe(true);
-    expect(res.body.length).toBeGreaterThan(0);
+    expect(Array.isArray(res.body.items)).toBe(true);
+    expect(res.body.items.length).toBeGreaterThan(0);
   });
 
   it('search_returnsMachingRecipes', async () => {
     const res = await request(app).get('/api/recipes?search=negroni');
     expect(res.status).toBe(200);
-    expect(res.body).toHaveLength(1);
-    expect(res.body[0].name).toBe('Negroni');
+    expect(res.body.items).toHaveLength(1);
+    expect(res.body.items[0].name).toBe('Negroni');
   });
 
   it('ingredients_include_filtersCorrectly', async () => {
     const res = await request(app).get('/api/recipes?ingredients=gin');
     expect(res.status).toBe(200);
-    const recipes = res.body as Recipe[];
+    const recipes = res.body.items as Recipe[];
     expect(recipes.map((r) => r.name)).toContain('Negroni');
     expect(
       recipes.every((r) => r.ingredients.some((i) => i.name.toLowerCase().includes('gin'))),
@@ -38,7 +57,7 @@ describe('GET /api/recipes', () => {
   it('excludeIngredients_filtersOut', async () => {
     const res = await request(app).get('/api/recipes?excludeIngredients=rum');
     expect(res.status).toBe(200);
-    const names = res.body.map((r: { name: string }) => r.name);
+    const names = res.body.items.map((r: { name: string }) => r.name);
     expect(names).not.toContain('Mojito');
     expect(names).not.toContain('Daiquiri');
   });
@@ -46,7 +65,7 @@ describe('GET /api/recipes', () => {
   it('minRating_filtersOutBelow', async () => {
     const res = await request(app).get('/api/recipes?minRating=5');
     expect(res.status).toBe(200);
-    res.body.forEach((r: { rating: number }) => {
+    res.body.items.forEach((r: { rating: number }) => {
       expect(r.rating).toBe(5);
     });
   });
@@ -54,7 +73,7 @@ describe('GET /api/recipes', () => {
   it('sortBy_ingredientCount_asc', async () => {
     const res = await request(app).get('/api/recipes?sortBy=ingredientCount&sortOrder=asc');
     expect(res.status).toBe(200);
-    const counts = res.body.map((r: { ingredients: unknown[] }) => r.ingredients.length);
+    const counts = res.body.items.map((r: { ingredients: unknown[] }) => r.ingredients.length);
     for (let i = 0; i < counts.length - 1; i++) {
       expect(counts[i]).toBeLessThanOrEqual(counts[i + 1]);
     }

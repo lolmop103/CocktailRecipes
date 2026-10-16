@@ -106,3 +106,34 @@ describe('IngredientSelector', () => {
     expect(screen.queryByRole('option', { name: /gin/i })).not.toBeInTheDocument();
   });
 });
+
+describe('IngredientSelector — limit', () => {
+  it('IngredientSelector_atMax_disablesInputAndShowsHint', () => {
+    render(
+      <IngredientSelector
+        label="Ingredients"
+        knownIngredients={known}
+        selected={['gin', 'rum']}
+        max={2}
+        onChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText('Search ingredients')).toBeDisabled();
+    expect(screen.getByText('Up to 2 ingredients')).toBeInTheDocument();
+  });
+
+  it('IngredientSelector_belowMax_inputEnabled', () => {
+    render(
+      <IngredientSelector
+        label="Ingredients"
+        knownIngredients={known}
+        selected={['gin']}
+        max={2}
+        onChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByLabelText('Search ingredients')).toBeEnabled();
+  });
+});
