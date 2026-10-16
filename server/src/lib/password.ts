@@ -62,6 +62,14 @@ export async function verifyPassword(password: string, encoded: string): Promise
   }
 }
 
+/**
+ * The line to paste into `.env`. Single-quoted: Docker Compose interpolates `$`
+ * in .env values, which would mangle the hash. Base64 never contains a quote.
+ */
+export function formatEnvLine(hash: string): string {
+  return `ADMIN_PASSWORD_HASH='${hash}'`;
+}
+
 /** The error to show for a new password, or null when it is acceptable. */
 export function checkNewPassword(first: string, second: string): string | null {
   if (first.length < MIN_PASSWORD_LENGTH)

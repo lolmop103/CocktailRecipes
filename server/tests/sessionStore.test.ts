@@ -4,6 +4,7 @@ import { sessionStore } from '../src/data/sessionStore.js';
 
 const NOW = 1_700_000_000_000;
 const HOUR = 3_600_000;
+const TAG = 'credentials-v1';
 
 beforeEach(() => {
   sessionStore.reset();
@@ -23,37 +24,43 @@ describe('sessions table', () => {
 
 describe('sessionStore', () => {
   it('isValid_beforeExpiry_true', () => {
-    sessionStore.create('hash-a', NOW, NOW + HOUR);
+    sessionStore.create('hash-a', TAG, NOW, NOW + HOUR);
 
-    expect(sessionStore.isValid('hash-a', NOW + HOUR - 1)).toBe(true);
+    expect(sessionStore.isValid('hash-a', TAG, NOW + HOUR - 1)).toBe(true);
   });
 
   it('isValid_atExpiry_false', () => {
-    sessionStore.create('hash-a', NOW, NOW + HOUR);
+    sessionStore.create('hash-a', TAG, NOW, NOW + HOUR);
 
-    expect(sessionStore.isValid('hash-a', NOW + HOUR)).toBe(false);
+    expect(sessionStore.isValid('hash-a', TAG, NOW + HOUR)).toBe(false);
   });
 
   it('isValid_unknownHash_false', () => {
-    expect(sessionStore.isValid('nope', NOW)).toBe(false);
+    expect(sessionStore.isValid('nope', TAG, NOW)).toBe(false);
   });
 
   it('remove_thenIsValid_false', () => {
-    sessionStore.create('hash-a', NOW, NOW + HOUR);
+    sessionStore.create('hash-a', TAG, NOW, NOW + HOUR);
 
     sessionStore.remove('hash-a');
 
-    expect(sessionStore.isValid('hash-a', NOW)).toBe(false);
+    expect(sessionStore.isValid('hash-a', TAG, NOW)).toBe(false);
   });
 
   it('purgeExpired_removesOnlyExpired_returnsCount', () => {
-    sessionStore.create('old-1', NOW - 2 * HOUR, NOW - HOUR);
-    sessionStore.create('old-2', NOW - 2 * HOUR, NOW);
-    sessionStore.create('fresh', NOW, NOW + HOUR);
+    sessionStore.create('old-1', TAG, NOW - 2 * HOUR, NOW - HOUR);
+    sessionStore.create('old-2', TAG, NOW - 2 * HOUR, NOW);
+    sessionStore.create('fresh', TAG, NOW, NOW + HOUR);
 
     const purged = sessionStore.purgeExpired(NOW);
 
     expect(purged).toBe(2);
-    expect(sessionStore.isValid('fresh', NOW)).toBe(true);
+    expect(sessionStore.isValid('fresh', TAG, NOW)).toBe(true);
+  });
+
+  it('isValid_otherCredentialTag_false', () => {
+    sessionStore.create('hash-a', TAG, NOW, NOW + HOUR);
+
+    expect(sessionStore.isValid('hash-a', 'credentials-v2', NOW)).toBe(false);
   });
 });

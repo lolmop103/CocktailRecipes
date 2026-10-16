@@ -46,3 +46,18 @@ describe('loginErrorMessage', () => {
     );
   });
 });
+
+describe('safeReturnTo — characters the URL parser strips', () => {
+  it('safeReturnTo_tabBeforeSecondSlash_fallsBack', () => {
+    // URL parsing drops tabs and newlines, so "/\t/host" resolves to "//host".
+    expect(safeReturnTo('/\t/evil.example')).toBe('/cocktails');
+  });
+
+  it('safeReturnTo_newlineBeforeSecondSlash_fallsBack', () => {
+    expect(safeReturnTo('/\n/evil.example')).toBe('/cocktails');
+  });
+
+  it('safeReturnTo_internalPathWithHash_keptWhole', () => {
+    expect(safeReturnTo('/cocktails?sortBy=rating#top')).toBe('/cocktails?sortBy=rating#top');
+  });
+});

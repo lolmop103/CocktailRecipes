@@ -121,9 +121,10 @@ const m005_sessions: Migration = {
     // does not hand out logged-in sessions.
     db.exec(`
       CREATE TABLE sessions (
-        token_hash TEXT PRIMARY KEY,   -- hex SHA-256 of the cookie token
-        created_at INTEGER NOT NULL,   -- unix ms
-        expires_at INTEGER NOT NULL    -- unix ms
+        token_hash     TEXT PRIMARY KEY,   -- hex SHA-256 of the cookie token
+        credential_tag TEXT NOT NULL,      -- fingerprint of the admin credentials it was opened with
+        created_at     INTEGER NOT NULL,   -- unix ms
+        expires_at     INTEGER NOT NULL    -- unix ms
       );
       CREATE INDEX idx_sessions_expires ON sessions(expires_at);
     `);

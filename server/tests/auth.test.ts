@@ -3,6 +3,8 @@ import request from 'supertest';
 import { createApp } from '../src/app.js';
 import { sessionStore } from '../src/data/sessionStore.js';
 import { authService } from '../src/services/authService.js';
+import { env } from '../src/config/env.js';
+import { db } from '../src/data/connection.js';
 import { adminAgent, TEST_ADMIN } from './helpers/admin.js';
 
 const app = createApp();
@@ -53,11 +55,14 @@ describe('POST /api/auth/login', () => {
     const res = await login(TEST_ADMIN);
     const token = /cocktail_session=([^;]+)/.exec(String(res.headers['set-cookie']))?.[1] ?? '';
 
-    expect(sessionStore.isValid(token, Date.now())).toBe(false);
+    const stored = db.prepare('SELECT token_hash FROM sessions').all() as { token_hash: string }[];
+    expect(stored).toHaveLength(1);
+    expect(stored[0]?.token_hash).not.toBe(token);
+    expect(stored[0]?.token_hash).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it('login_purgesExpiredSessions', async () => {
-    sessionStore.create('stale', 1, 2);
+    sessionStore.create('stale', 'any-tag', 1, 2);
 
     await login(TEST_ADMIN);
 
@@ -130,5 +135,35 @@ describe('login without admin configuration', () => {
 
     expect(res.status).toBe(503);
     expect(res.body).toMatchObject({ message: 'Admin login is not configured' });
+  });
+});
+
+describe('session revocation', () => {
+  const tokenFrom = (res: { headers: Record<string, unknown> }) =>
+    /cocktail_session=([^;]+)/.exec(String(res.headers['set-cookie']))?.[1] ?? '';
+  const meWith = (token: string) =>
+    request(app).get('/api/auth/me').set('Cookie', `cocktail_session=${token}`);
+
+  it('logout_revokesTheTokenServerSide', async () => {
+    const token = tokenFrom(await login(TEST_ADMIN));
+
+    await request(app)
+      .post('/api/auth/logout')
+      .set('Origin', ORIGIN)
+      .set('Cookie', `cocktail_session=${token}`);
+
+    // The token is sent explicitly: a client that kept the cookie must be refused.
+    expect((await meWith(token)).body).toEqual({ authenticated: false });
+  });
+
+  it('passwordChange_endsExistingSessions', async () => {
+    const token = tokenFrom(await login(TEST_ADMIN));
+    const original = env.ADMIN_PASSWORD_HASH;
+
+    env.ADMIN_PASSWORD_HASH = 'scrypt$1024$8$1$bmV3LXNhbHQ=$bmV3LWtleQ==';
+    const after = await meWith(token);
+    env.ADMIN_PASSWORD_HASH = original;
+
+    expect(after.body).toEqual({ authenticated: false });
   });
 });

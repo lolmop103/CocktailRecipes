@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { scryptSync } from 'node:crypto';
-import { checkNewPassword, hashPassword, verifyPassword } from '../src/lib/password.js';
+import {
+  checkNewPassword,
+  formatEnvLine,
+  hashPassword,
+  verifyPassword,
+} from '../src/lib/password.js';
 
 /** A low-cost hash built by hand, as the test-only admin hash is. */
 function lowCostHash(password: string): string {
@@ -70,5 +75,13 @@ describe('test-only admin hash', () => {
     const { TEST_ADMIN, TEST_ADMIN_PASSWORD_HASH } = await import('./helpers/admin.js');
 
     expect(await verifyPassword(TEST_ADMIN.password, TEST_ADMIN_PASSWORD_HASH)).toBe(true);
+  });
+});
+
+describe('formatEnvLine', () => {
+  it('formatEnvLine_quotesTheHash_soComposeDoesNotInterpolateDollars', () => {
+    expect(formatEnvLine('scrypt$32768$8$1$c2FsdA==$a2V5')).toBe(
+      "ADMIN_PASSWORD_HASH='scrypt$32768$8$1$c2FsdA==$a2V5'",
+    );
   });
 });

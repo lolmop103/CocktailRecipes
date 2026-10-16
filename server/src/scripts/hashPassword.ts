@@ -6,7 +6,7 @@
  */
 import { createInterface } from 'node:readline';
 import { Writable } from 'node:stream';
-import { checkNewPassword, hashPassword } from '../lib/password.js';
+import { checkNewPassword, formatEnvLine, hashPassword } from '../lib/password.js';
 
 /** Output that can be silenced while the password is typed. */
 class MutableOutput extends Writable {
@@ -42,5 +42,5 @@ if (problem) {
   process.stderr.write(`${problem}\n`);
   process.exitCode = 1;
 } else {
-  process.stdout.write(`ADMIN_PASSWORD_HASH=${await hashPassword(first)}\n`);
+  process.stdout.write(`${formatEnvLine(await hashPassword(first))}\n`);
 }
