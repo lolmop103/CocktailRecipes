@@ -31,7 +31,8 @@ export class StubObserver {
   }
 
   trigger(isIntersecting: boolean) {
-    const entries = [...this.targets].map(
+    const entries = Array.from(
+      this.targets,
       (target) => ({ target, isIntersecting }) as IntersectionObserverEntry,
     );
     if (entries.length > 0) {
@@ -53,7 +54,7 @@ export function installIntersectionObserverStub(): ObserverStub {
     constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
       const observer = new StubObserver(callback, options);
       stub.instances.push(observer);
-      return observer as unknown as IntersectionObserver;
+      return observer;
     }
   } as unknown as typeof IntersectionObserver;
   return stub;

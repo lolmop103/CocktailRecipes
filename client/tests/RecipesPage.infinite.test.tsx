@@ -3,6 +3,7 @@ import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { renderWithProviders } from './testUtils.js';
 import { installIntersectionObserverStub, type ObserverStub } from './intersectionObserverStub.js';
 import type { Recipe, RecipePage } from '../src/features/Recipes/types/index.js';
+import type * as StarRatingModule from '../src/features/Recipes/components/StarRating.js';
 
 const api = {
   list: vi.fn(),
@@ -20,8 +21,7 @@ vi.mock('../src/features/Recipes/services/api.js', () => ({
 /** Renders per card, keyed by recipe name — counts re-renders of existing cards. */
 const starRenders = new Map<string, number>();
 vi.mock('../src/features/Recipes/components/StarRating.js', async (importOriginal) => {
-  const original =
-    await importOriginal<typeof import('../src/features/Recipes/components/StarRating.js')>();
+  const original = await importOriginal<typeof StarRatingModule>();
   return {
     StarRating: (props: Parameters<typeof original.StarRating>[0]) => {
       starRenders.set(props.recipeName, (starRenders.get(props.recipeName) ?? 0) + 1);
