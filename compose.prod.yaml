@@ -1,0 +1,30 @@
+# Production: the app behind the owner's existing Caddy. See docs/deploy.md.
+#
+#   docker compose -f compose.prod.yaml up -d --build
+#
+# No ports are published: Caddy reaches the container over the shared Docker
+# network as `cocktail:3000`, and nothing else can.
+services:
+  cocktail:
+    build: .
+    image: cocktail:latest
+    env_file: ${COCKTAIL_ENV_FILE:-.env}
+    environment:
+      NODE_ENV: production
+      PORT: '3000'
+      DATA_DIR: /data
+      # Caddy is the one proxy in front: the client IP is the address it saw.
+      TRUST_PROXY_HOPS: '1'
+    volumes:
+      - cocktail-db:/data
+    networks:
+      - caddy
+    restart: unless-stopped
+
+networks:
+  caddy:
+    external: true
+    name: ${CADDY_NETWORK:-caddy}
+
+volumes:
+  cocktail-db:

@@ -82,34 +82,65 @@ revisit it:
 | Docker `node:22-alpine`         | 22            | Same runtime as CI (`node-version: 22`)                                                                                                                                      | the runtime moves to Node 24                                                 |
 | `vitest`, `@vitest/coverage-v8` | exactly 5.0.4 | 5.0.5 changed the `Assertion` type so `@testing-library/jest-dom/vitest` no longer augments it; client `tsc` and lint fail on every `toBeInTheDocument` (checked 2026-10-16) | a `vitest` or `@testing-library/jest-dom` release restores the matcher types |
 
-## Current status & next steps (updated 2026-10-15)
+## Current status & next steps (updated 2026-10-16)
 
-The app is feature-complete for its first scope: cocktail/mocktail tabs,
-ingredient include/exclude/"only these" filtering, search, rating, sorting, full
-CRUD, ingredient classification, collections and the ml ⇄ oz toggle. `main` CI
-is green (last run 2026-09-22). `develop` was branched from `main` on 2026-10-15.
+The first scope is complete (cocktail/mocktail tabs, include/exclude/"only
+these" filtering, search, rating, sorting, CRUD, classification, collections,
+ml ⇄ oz). On 2026-10-16 the production-hardening plan
+(`docs/superpowers/specs/2026-10-16-production-hardening-design.md`, plan in
+`docs/superpowers/plans/`) was executed in seven PRs (#3–#9): one admin login
+with server-side sessions, writes guarded (session + Origin), bounded filters,
+paginated list with infinite scroll, per-IP rate limits, cache headers and
+timeouts, and `compose.prod.yaml` + `docs/deploy.md` for running behind the
+owner's Caddy.
 
-Checked on 2026-10-15: `npm run verify` green (server 117 tests, 97.8% lines;
-client 193 tests, 92.2% lines); the Docker image builds (356 MB), starts
-healthy, applies migrations 1–4 and serves the seeded recipes. On 2026-10-16
-`npm run e2e` passed locally (6/6).
+Checked on 2026-10-16: `npm run verify` green (server 277 tests, client 276),
+`npm run e2e` 10/10, the production compose stack smoke-tested on a private
+network (no published ports, health 200, anonymous write 401, cross-site write
+403, `__Host-` Secure session cookie). `npm run probe`: worst filter ≤ 30 ms
+and health p95 during a single-IP flood 15–28 ms (387 ms without the limiter).
 
 **Open items:**
 
-- **Dependencies (2026-10-16):** the dev advisories are fixed and every
-  compatible patch/minor update is in (`chore/deps-2026-10-16`); `npm audit` is
-  clean. Major PRs to weigh: `concurrently` 10,
-  `better-sqlite3` 13 (+ `@types/better-sqlite3` 9), `eslint-plugin-react-hooks`
-  7, `globals` 17, `@types/supertest` 7, TypeScript 6.0, GitHub Actions
-  `checkout`/`setup-node`/`upload-artifact` v4 → v7.
+- **Re-measure `npm run probe` on the VPS.** The typical-filter row (budget
+  ≤ 5 ms) measured 2.6–3.5 ms in the morning and 8–10 ms in the afternoon of
+  2026-10-16 on unchanged code (the machine itself slowed). If it misses on the
+  VPS: skip the COUNT on later pages, or loosen the row with a reason.
+- **Dependencies (2026-10-16):** `npm audit` clean. Major PRs to weigh:
+  `concurrently` 10, `better-sqlite3` 13 (+ `@types/better-sqlite3` 9),
+  `eslint-plugin-react-hooks` 7, `globals` 17, `@types/supertest` 7,
+  TypeScript 6.0, GitHub Actions v4 → v7.
 - The Vite dev proxy target is hard-coded to port 3000 instead of following
   `PORT`.
 - `.gitignore` lists `.github/skills/`, yet `react-components/SKILL.md` is
   tracked, and that skill still says "React 18".
 - e18e analyze flags the `exports` field in `packages/shared/package.json` as
-  ignored by Node — a false positive for a workspace package that Node resolves
-  through `node_modules`; keep it.
+  ignored by Node — a false positive for a workspace package; keep it.
+- **Review findings deferred on 2026-10-16** (minor; each was judged not to hurt
+  a visitor today):
+  - Filters: the picker at 20 terms keeps its listbox open (a 21st click is
+    clamped away, focus drops to `<body>`); the search box has no
+    `maxLength`; no contract test that `buildQuery(clampFilters(url))` always
+    passes the server schema.
+  - List: no guard for a page with 0 items but a `nextOffset` (the server cannot
+    produce one); "Showing 0 of 0" is announced before the first page; returning
+    to a stale filter refetches every cached page.
+  - Login: production accepts the public low-cost test hash (and the
+    playwright.config comment "never used elsewhere" is wrong); any scrypt N/r/p
+    is accepted, so an unusable hash makes every login a silent 401; logging in
+    again leaves the previous session row valid; `useLogout` does not refresh
+    the list and has no error feedback.
+  - Guards: `sameOrigin` exempts OPTIONS, which `cors` already answers; the
+    session-expired hook reacts to every `updated` event of a failed mutation
+    (N classify calls → N session refetches).
+  - Limits and caching: the `assets/` cache check runs on the absolute path (a
+    checkout under a directory named "assets" would cache `index.html` for a
+    year; Docker's `/app` is safe); the timeouts comment overstates
+    `requestTimeout`; a 429 on `/api/auth/me` hides the admin's controls until
+    the next successful check.
 
 ## Not yet set up (intentional)
 
-Authentication, user accounts, hosted deployment. Don't add these unless asked.
+More than one user, sign-up, password reset, 2FA, database backups, monitoring,
+and protection against floods from many IP addresses (that belongs in front of
+the app). Don't add these unless asked.
