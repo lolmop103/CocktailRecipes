@@ -23,7 +23,8 @@ export class ApiError extends Error {
 }
 
 export async function request<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, init);
+  // The session cookie is same-origin; say so explicitly rather than rely on the default.
+  const res = await fetch(url, { credentials: 'same-origin', ...init });
 
   if (!res.ok) {
     let body: ApiErrorBody = {};

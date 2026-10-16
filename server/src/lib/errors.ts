@@ -45,3 +45,8 @@ export class UnauthorizedError extends AppError {
 export class ServiceUnavailableError extends AppError {
   readonly status = 503;
 }
+
+/** A request the server refuses whoever sends it, such as a cross-site write. */
+export class ForbiddenError extends AppError {
+  readonly status = 403;
+}

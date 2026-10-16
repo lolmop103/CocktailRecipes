@@ -13,7 +13,16 @@ const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
-    CLIENT_ORIGIN: z.url().default('http://localhost:5173'),
+    // Compared exactly with each request's Origin header, so it is reduced to
+    // the browser's form: lower-case host, no default port, no trailing slash.
+    CLIENT_ORIGIN: z
+      .url()
+      .refine((value) => {
+        const url = new URL(value);
+        return url.pathname === '/' && url.search === '' && url.hash === '';
+      }, 'must be an origin such as https://cocktails.example.com, without a path')
+      .transform((value) => new URL(value).origin)
+      .default('http://localhost:5173'),
     DATA_DIR: z.string().min(1).optional(),
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
     ADMIN_USERNAME: z.string().min(1).max(64).optional(),

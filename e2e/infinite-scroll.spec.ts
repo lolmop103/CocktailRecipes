@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { adminHeaders } from './helpers/login.js';
 
 /**
  * Enough extra cocktails for three pages of 24. Kept at 41 so the whole e2e
@@ -6,10 +7,12 @@ import { test, expect } from '@playwright/test';
  */
 const EXTRA_RECIPES = 41;
 
-test.beforeAll(async ({ request }) => {
+test.beforeAll(async ({ request, baseURL }) => {
+  const headers = await adminHeaders(request, baseURL ?? '');
   for (let i = 0; i < EXTRA_RECIPES; i++) {
     // "Zz" sorts these after every recipe the other journeys look for.
     const res = await request.post('/api/recipes', {
+      headers,
       data: {
         name: `Zz Scroll ${String(i).padStart(2, '0')}`,
         ingredients: [{ name: 'gin', amount: '50ml' }],

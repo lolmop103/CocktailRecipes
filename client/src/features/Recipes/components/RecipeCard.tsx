@@ -6,6 +6,8 @@ import { StarRating } from './StarRating.js';
 
 interface Props {
   recipe: Recipe;
+  /** The admin sees edit, delete, rating and collection controls; visitors only read. */
+  canEdit: boolean;
   unit: Unit;
   collections: Collection[];
   onRate: (id: string, rating: number) => void;
@@ -23,6 +25,7 @@ interface Props {
 export const RecipeCard = memo(
   ({
     recipe,
+    canEdit,
     unit,
     collections,
     onRate,
@@ -52,24 +55,26 @@ export const RecipeCard = memo(
               ))}
             </div>
           </div>
-          <div className="recipe-card__actions">
-            <button
-              type="button"
-              className="btn-icon"
-              aria-label={`Edit ${recipe.name}`}
-              onClick={() => onEdit(recipe)}
-            >
-              ✏
-            </button>
-            <button
-              type="button"
-              className="btn-icon btn-icon--danger"
-              aria-label={`Delete ${recipe.name}`}
-              onClick={handleDelete}
-            >
-              🗑
-            </button>
-          </div>
+          {canEdit && (
+            <div className="recipe-card__actions">
+              <button
+                type="button"
+                className="btn-icon"
+                aria-label={`Edit ${recipe.name}`}
+                onClick={() => onEdit(recipe)}
+              >
+                ✏
+              </button>
+              <button
+                type="button"
+                className="btn-icon btn-icon--danger"
+                aria-label={`Delete ${recipe.name}`}
+                onClick={handleDelete}
+              >
+                🗑
+              </button>
+            </div>
+          )}
         </div>
 
         <ul className="recipe-card__ingredients">
@@ -93,20 +98,23 @@ export const RecipeCard = memo(
             {...(recipe.rating !== undefined ? { value: recipe.rating } : {})}
             recipeName={recipe.name}
             onRate={(n) => onRate(recipe.id, n)}
+            readOnly={!canEdit}
           />
           <div className="recipe-card__footer-right">
             <span className="ingredient-count">
               {recipe.ingredients.length} ingredient
               {recipe.ingredients.length !== 1 ? 's' : ''}
             </span>
-            <CollectionPicker
-              recipeId={recipe.id}
-              recipeName={recipe.name}
-              collections={collections}
-              onAdd={(colId) => onAddToCollection(colId, recipe.id)}
-              onRemove={(colId) => onRemoveFromCollection(colId, recipe.id)}
-              onCreate={onCreateCollection}
-            />
+            {canEdit && (
+              <CollectionPicker
+                recipeId={recipe.id}
+                recipeName={recipe.name}
+                collections={collections}
+                onAdd={(colId) => onAddToCollection(colId, recipe.id)}
+                onRemove={(colId) => onRemoveFromCollection(colId, recipe.id)}
+                onCreate={onCreateCollection}
+              />
+            )}
           </div>
         </div>
       </article>

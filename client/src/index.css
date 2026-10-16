@@ -785,6 +785,25 @@ select {
   font-size: var(--t-sm);
 }
 
+/* -- Session expired ----------------------- */
+.session-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1.5rem;
+  background: var(--paper);
+  border-bottom: 1px solid var(--accent);
+  font-size: var(--t-sm);
+}
+.session-banner__dismiss {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
 /* -- Load more ---------------------------- */
 .load-more {
   display: flex;

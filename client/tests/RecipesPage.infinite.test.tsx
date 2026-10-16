@@ -13,6 +13,9 @@ const api = {
   delete: vi.fn(),
 };
 
+const authApi = { me: vi.fn(), login: vi.fn(), logout: vi.fn() };
+vi.mock('../src/features/Auth/services/authApi.js', () => ({ authApi }));
+
 vi.mock('../src/features/Recipes/services/api.js', () => ({
   recipesApi: api,
   ApiError: class ApiError extends Error {
@@ -52,6 +55,7 @@ let observers: ObserverStub;
 
 beforeEach(() => {
   vi.clearAllMocks();
+  authApi.me.mockResolvedValue({ authenticated: true, username: 'admin' });
   starRenders.clear();
   observers = installIntersectionObserverStub();
   api.getIngredients.mockResolvedValue([]);
@@ -68,6 +72,7 @@ function twoPages() {
 async function renderPage() {
   renderWithProviders(<RecipesPage tab="cocktail" />, { route: '/cocktails' });
   await screen.findByRole('heading', { name: 'R0' });
+  await screen.findByLabelText('Delete R0');
 }
 
 describe('RecipesPage — infinite list', () => {

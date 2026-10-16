@@ -104,3 +104,31 @@ describe('env — admin and session settings', () => {
     expect(env.TRUST_PROXY_HOPS).toBe(0);
   });
 });
+
+describe('env — CLIENT_ORIGIN', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('env_clientOriginWithSlashAndUppercase_normalisedToOrigin', async () => {
+    vi.stubEnv('CLIENT_ORIGIN', 'https://Cocktails.Example.com/');
+
+    const { env } = await loadEnv();
+
+    expect(env.CLIENT_ORIGIN).toBe('https://cocktails.example.com');
+  });
+
+  it('env_clientOriginDefaultPort_dropped', async () => {
+    vi.stubEnv('CLIENT_ORIGIN', 'https://cocktails.example.com:443');
+
+    const { env } = await loadEnv();
+
+    expect(env.CLIENT_ORIGIN).toBe('https://cocktails.example.com');
+  });
+
+  it('env_clientOriginWithPath_fails', async () => {
+    vi.stubEnv('CLIENT_ORIGIN', 'https://cocktails.example.com/app');
+
+    await expect(loadEnv()).rejects.toThrow(/CLIENT_ORIGIN/);
+  });
+});
