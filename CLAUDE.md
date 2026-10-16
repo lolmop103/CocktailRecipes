@@ -88,7 +88,8 @@ The first scope is complete (cocktail/mocktail tabs, include/exclude/"only
 these" filtering, search, rating, sorting, CRUD, classification, collections,
 ml ⇄ oz). On 2026-10-16 the production-hardening plan
 (`docs/superpowers/specs/2026-10-16-production-hardening-design.md`, plan in
-`docs/superpowers/plans/`) was executed in seven PRs (#3–#9): one admin login
+`docs/superpowers/plans/`) was implemented in PRs #3–#9 (#3–#5 and #7 merged on
+2026-10-16; the rest awaiting review): one admin login
 with server-side sessions, writes guarded (session + Origin), bounded filters,
 paginated list with infinite scroll, per-IP rate limits, cache headers and
 timeouts, and `compose.prod.yaml` + `docs/deploy.md` for running behind the

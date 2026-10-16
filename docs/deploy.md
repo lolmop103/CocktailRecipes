@@ -5,7 +5,7 @@ already run in Docker. Caddy terminates HTTPS and compresses responses; the app
 publishes no port of its own and is reached only over a shared Docker network.
 
 ```
-visitor ──HTTPS──▶ Caddy ──http://cocktail:3000──▶ app container ──▶ SQLite (volume cocktail-db)
+visitor ──HTTPS──▶ Caddy ──http://cocktail:3000──▶ app container ──▶ SQLite (volume cocktail-prod-db)
 ```
 
 ## Prerequisites
@@ -15,8 +15,18 @@ visitor ──HTTPS──▶ Caddy ──http://cocktail:3000──▶ app conta
   it `caddy`; if yours has another name, set `CADDY_NETWORK` (see below). Check
   with `docker network ls`.
 - A DNS name for the site pointing at the VPS (below: `cocktails.example.com`).
+- Nothing in front of Caddy: visitors connect to Caddy directly. If you put a CDN
+  such as Cloudflare in front of it, set `TRUST_PROXY_HOPS=2` in `.env` —
+  otherwise every visitor shares one rate-limit bucket (the CDN's address).
 - Node 22+ on the machine where you create the password hash (your laptop is
   fine — the hash is what goes to the server, never the password).
+
+## 0. Get the code on the VPS
+
+```bash
+git clone https://github.com/lolmop103/CocktailRecipes.git
+cd CocktailRecipes
+```
 
 ## 1. Create the admin password hash
 
@@ -74,18 +84,25 @@ or however you normally do). Caddy obtains the certificate itself.
 
 ```bash
 docker compose -f compose.prod.yaml up -d --build
-docker compose -f compose.prod.yaml ps      # STATUS shows (healthy) after ~10 s
+docker compose -f compose.prod.yaml ps      # STATUS shows (healthy) within a minute
 ```
 
 The database is created and seeded with eight classics on first start; it lives
-in the `cocktail-db` volume and survives rebuilds.
+in the `cocktail-prod-db` volume and survives rebuilds.
 
 ## 5. Check it
 
 ```bash
 # The site answers through Caddy, compressed
 curl -fsS https://cocktails.example.com/api/health
-curl -s -o /dev/null -w '%{size_download} bytes\n' --compressed https://cocktails.example.com/api/recipes
+# The first page is compressed by Caddy: expect `content-encoding: zstd` (or gzip)
+# and a size well under 5,000 bytes
+curl -s -D - -o /dev/null --compressed -w '%{size_download} bytes\n' \
+  https://cocktails.example.com/api/recipes | grep -iE 'content-encoding|bytes'
+
+# A repeat request is answered 304 with an empty body (ETag)
+etag=$(curl -s -D - -o /dev/null https://cocktails.example.com/api/recipes | grep -i '^etag' | cut -d' ' -f2 | tr -d '\r')
+curl -s -o /dev/null -w '%{http_code}\n' -H "If-None-Match: $etag" https://cocktails.example.com/api/recipes   # → 304
 
 # Changing data without logging in is refused
 curl -s -o /dev/null -w '%{http_code}\n' -X POST \
@@ -117,9 +134,19 @@ What it does **not** stop: a flood from many IP addresses at once (a botnet).
 No single app can; that has to be handled in front of it — by your VPS
 provider's DDoS protection, or by Caddy with a rate-limit plugin.
 
-## Not part of this setup
+## Backups (manual)
 
-Backups. The SQLite file is `/data/cocktail.db` inside the `cocktail-db`
-volume; copy it out with
-`docker run --rm -v cocktail-db:/data -v "$PWD":/backup alpine cp /data/cocktail.db /backup/`
-(stop the container first, or use SQLite's `.backup`, for a consistent copy).
+Automated backups are not part of this setup. The database lives in the
+`cocktail-prod-db` volume as `cocktail.db` plus its write-ahead log
+(`cocktail.db-wal`, `cocktail.db-shm`) — always copy them together, with the
+app stopped:
+
+```bash
+docker compose -f compose.prod.yaml stop
+docker run --rm -v cocktail-prod-db:/data -v "$PWD/backup":/backup alpine \
+  sh -c 'cp -a /data/. /backup/'
+docker compose -f compose.prod.yaml start
+```
+
+To restore, stop the app, copy the files back the same way (from `/backup` into
+`/data`), and start it again.
