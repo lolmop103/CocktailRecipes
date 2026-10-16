@@ -74,12 +74,13 @@ Everything else is "latest stable and compatible", checked at the start of each
 session (`checking-dependency-freshness`). Each hold, its reason and when to
 revisit it:
 
-| Package                 | Held at   | Reason                                                                                                                                                   | Revisit when                               |
-| ----------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
-| `typescript`            | below 6.1 | `typescript-eslint` 8.71 peers `typescript >=4.8.4 <6.1.0`, so TypeScript 7 is out (checked 2026-10-15). 6.0 is in range and is its own major-upgrade PR | `typescript-eslint` accepts TS 7           |
-| `eslint`, `@eslint/js`  | 9         | `eslint-plugin-jsx-a11y` 6.10.2 peers `eslint ^3 … ^9`, so ESLint 10 is out (checked 2026-10-15)                                                         | `eslint-plugin-jsx-a11y` accepts ESLint 10 |
-| `@types/node`           | 22        | Follows the Node 22 runtime of CI and the Docker image                                                                                                   | the runtime moves to Node 24               |
-| Docker `node:22-alpine` | 22        | Same runtime as CI (`node-version: 22`)                                                                                                                  | the runtime moves to Node 24               |
+| Package                         | Held at       | Reason                                                                                                                                                                       | Revisit when                                                                 |
+| ------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `typescript`                    | below 6.1     | `typescript-eslint` 8.71 peers `typescript >=4.8.4 <6.1.0`, so TypeScript 7 is out (checked 2026-10-15). 6.0 is in range and is its own major-upgrade PR                     | `typescript-eslint` accepts TS 7                                             |
+| `eslint`, `@eslint/js`          | 9             | `eslint-plugin-jsx-a11y` 6.10.2 peers `eslint ^3 … ^9`, so ESLint 10 is out (checked 2026-10-15)                                                                             | `eslint-plugin-jsx-a11y` accepts ESLint 10                                   |
+| `@types/node`                   | 22            | Follows the Node 22 runtime of CI and the Docker image                                                                                                                       | the runtime moves to Node 24                                                 |
+| Docker `node:22-alpine`         | 22            | Same runtime as CI (`node-version: 22`)                                                                                                                                      | the runtime moves to Node 24                                                 |
+| `vitest`, `@vitest/coverage-v8` | exactly 5.0.4 | 5.0.5 changed the `Assertion` type so `@testing-library/jest-dom/vitest` no longer augments it; client `tsc` and lint fail on every `toBeInTheDocument` (checked 2026-10-16) | a `vitest` or `@testing-library/jest-dom` release restores the matcher types |
 
 ## Current status & next steps (updated 2026-10-15)
 
@@ -90,17 +91,14 @@ is green (last run 2026-09-22). `develop` was branched from `main` on 2026-10-15
 
 Checked on 2026-10-15: `npm run verify` green (server 117 tests, 97.8% lines;
 client 193 tests, 92.2% lines); the Docker image builds (356 MB), starts
-healthy, applies migrations 1–4 and serves the seeded recipes. `npm run e2e` was
-not verified locally — the Playwright browser download timed out in the agent
-sandbox.
+healthy, applies migrations 1–4 and serves the seeded recipes. On 2026-10-16
+`npm run e2e` passed locally (6/6).
 
 **Open items:**
 
-- **Dependency check 2026-10-15:** `npm audit` reports 3 dev-only advisories
-  (critical `shell-quote` via `concurrently`, high `source-map-js` via
-  `vite`/`jsdom`/`@vitest/coverage-v8`, moderate `smol-toml` via `knip`), all
-  fixed in range by `npm audit fix`; production deps are clean. Patch/minor
-  updates are available across the board. Major PRs to weigh: `concurrently` 10,
+- **Dependencies (2026-10-16):** the dev advisories are fixed and every
+  compatible patch/minor update is in (`chore/deps-2026-10-16`); `npm audit` is
+  clean. Major PRs to weigh: `concurrently` 10,
   `better-sqlite3` 13 (+ `@types/better-sqlite3` 9), `eslint-plugin-react-hooks`
   7, `globals` 17, `@types/supertest` 7, TypeScript 6.0, GitHub Actions
   `checkout`/`setup-node`/`upload-artifact` v4 → v7.
