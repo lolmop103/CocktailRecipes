@@ -1,4 +1,10 @@
-import type { CreateRecipeInput, Recipe, RecipeQuery, UpdateRecipeInput } from '@cocktail/shared';
+import type {
+  CreateRecipeInput,
+  Recipe,
+  RecipePage,
+  RecipeQuery,
+  UpdateRecipeInput,
+} from '@cocktail/shared';
 import { recipeStore } from '../data/recipeStore.js';
 import { ingredientMetaStore } from '../data/ingredientMetaStore.js';
 import { collectionStore } from '../data/collectionStore.js';
@@ -17,8 +23,11 @@ function registerIngredients(recipe: Recipe): void {
 
 export const recipeService = {
   /** The schema has already split, de-duplicated and bounded every filter. */
-  list(query: RecipeQuery): Recipe[] {
-    return recipeStore.query(query, query.collectionId);
+  list(query: RecipeQuery): RecipePage {
+    const { limit, offset } = query;
+    const { items, total } = recipeStore.query(query, query.collectionId, { limit, offset });
+    const end = offset + items.length;
+    return { items, total, nextOffset: end < total ? end : null };
   },
 
   getById(id: string): Recipe {

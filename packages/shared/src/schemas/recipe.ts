@@ -7,8 +7,11 @@ import {
   INSTRUCTIONS_MAX,
   MAX_COLLECTION_ID_LENGTH,
   MAX_FILTER_TERMS,
+  MAX_OFFSET,
   MAX_SEARCH_LENGTH,
   MAX_TERM_LENGTH,
+  PAGE_SIZE_DEFAULT,
+  PAGE_SIZE_MAX,
   RECIPE_NAME_MAX,
   TAG_LENGTH_MAX,
   TAGS_MAX,
@@ -120,7 +123,16 @@ export const recipeQuerySchema = z.object({
   sortOrder: z.enum(SORT_ORDER).optional(),
   isMocktail: booleanParam,
   collectionId: z.string().regex(/^\d+$/).max(MAX_COLLECTION_ID_LENGTH).optional(),
+  limit: z.coerce.number().int().min(1).max(PAGE_SIZE_MAX).default(PAGE_SIZE_DEFAULT),
+  offset: z.coerce.number().int().min(0).max(MAX_OFFSET).default(0),
 });
+
+/** One page of the recipe list. `nextOffset` is null on the last page. */
+export interface RecipePage {
+  items: Recipe[];
+  total: number;
+  nextOffset: number | null;
+}
 
 export type Ingredient = z.infer<typeof ingredientSchema>;
 export type Recipe = z.infer<typeof recipeSchema>;

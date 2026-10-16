@@ -86,12 +86,12 @@ describe('LIKE wildcards in filter values', () => {
     const res = await request(createApp()).get('/api/recipes?ingredients=%25');
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual([]);
+    expect(res.body.items).toEqual([]);
   });
 
   it('search_underscore_matchesOnlyALiteralUnderscore', async () => {
     const res = await request(createApp()).get('/api/recipes?search=_');
 
-    expect(res.body).toEqual([]);
+    expect(res.body.items).toEqual([]);
   });
 });
