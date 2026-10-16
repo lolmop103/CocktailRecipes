@@ -63,7 +63,9 @@ CADDY_NETWORK=caddy
 - `CLIENT_ORIGIN` must be the public `https://` address exactly as visitors type
   it, without a path. Every change to data is refused (403) unless the browser
   says it comes from this origin.
-- The server refuses to start without `ADMIN_USERNAME` and `ADMIN_PASSWORD_HASH`.
+- The server refuses to start without `ADMIN_USERNAME` and `ADMIN_PASSWORD_HASH`,
+  and refuses a hash it cannot verify or one cheaper than `hash-password`
+  makes — such as the public test-only hash in this repository.
 - `compose.prod.yaml` sets `NODE_ENV`, `PORT`, `DATA_DIR` and
   `TRUST_PROXY_HOPS=1` itself; you do not need them in `.env`.
 - Changing the password (a new hash and a restart) ends every open session.

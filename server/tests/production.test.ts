@@ -27,6 +27,8 @@ describe('production boot', () => {
     process.chdir(root);
 
     vi.stubEnv('NODE_ENV', 'production');
+    // The cheap test-only hash from vitest.config.ts.
+    vi.stubEnv('ALLOW_WEAK_ADMIN_HASH', 'true');
     vi.stubEnv('DATA_DIR', join(root, 'data'));
     vi.stubEnv('CLIENT_ORIGIN', 'http://localhost:3000');
     vi.spyOn(console, 'log').mockImplementation(() => undefined);

@@ -112,17 +112,18 @@ Copy `.env.example` to `.env`. Every variable is validated at startup by
 `server/src/config/env.ts`, so a bad value fails the boot rather than surfacing
 later as a confusing runtime error.
 
-| Variable              | Default                    | Purpose                                                                 |
-| --------------------- | -------------------------- | ----------------------------------------------------------------------- |
-| `PORT`                | `3000`                     | API port                                                                |
-| `NODE_ENV`            | `development`              | `development`, `test`, `production`                                     |
-| `CLIENT_ORIGIN`       | `http://localhost:5173`    | The site's own origin: CORS, and every write must come from it          |
-| `DATA_DIR`            | `<cwd>/data-store`         | Where `cocktail.db` is written                                          |
-| `LOG_LEVEL`           | `info`                     | `debug`, `info`, `warn`, `error`                                        |
-| `ADMIN_USERNAME`      | — (required in production) | The one account that may change data                                    |
-| `ADMIN_PASSWORD_HASH` | — (required in production) | From `npm run hash-password --workspace=server`; keep the single quotes |
-| `SESSION_TTL_DAYS`    | `30`                       | How long a login lasts                                                  |
-| `TRUST_PROXY_HOPS`    | `0`                        | Proxies in front of the app; `1` behind Caddy                           |
+| Variable                | Default                    | Purpose                                                                   |
+| ----------------------- | -------------------------- | ------------------------------------------------------------------------- |
+| `PORT`                  | `3000`                     | API port                                                                  |
+| `NODE_ENV`              | `development`              | `development`, `test`, `production`                                       |
+| `CLIENT_ORIGIN`         | `http://localhost:5173`    | The site's own origin: CORS, and every write must come from it            |
+| `DATA_DIR`              | `<cwd>/data-store`         | Where `cocktail.db` is written                                            |
+| `LOG_LEVEL`             | `info`                     | `debug`, `info`, `warn`, `error`                                          |
+| `ADMIN_USERNAME`        | — (required in production) | The one account that may change data                                      |
+| `ADMIN_PASSWORD_HASH`   | — (required in production) | From `npm run hash-password --workspace=server`; keep the single quotes   |
+| `ALLOW_WEAK_ADMIN_HASH` | `false`                    | Tests only: lets production accept the cheap test hash; never on a server |
+| `SESSION_TTL_DAYS`      | `30`                       | How long a login lasts                                                    |
+| `TRUST_PROXY_HOPS`      | `0`                        | Proxies in front of the app; `1` behind Caddy                             |
 
 ## Docker
 

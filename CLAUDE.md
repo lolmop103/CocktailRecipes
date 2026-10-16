@@ -130,11 +130,8 @@ and health p95 during a single-IP flood 15–28 ms (387 ms without the limiter).
   - List: no guard for a page with 0 items but a `nextOffset` (the server cannot
     produce one); "Showing 0 of 0" is announced before the first page; returning
     to a stale filter refetches every cached page.
-  - Login: production accepts the public low-cost test hash (and the
-    playwright.config comment "never used elsewhere" is wrong); any scrypt N/r/p
-    is accepted, so an unusable hash makes every login a silent 401; logging in
-    again leaves the previous session row valid; `useLogout` does not refresh
-    the list and has no error feedback.
+  - Login: logging in again leaves the previous session row valid; `useLogout`
+    does not refresh the list and has no error feedback.
   - Guards: `sameOrigin` exempts OPTIONS, which `cors` already answers; the
     session-expired hook reacts to every `updated` event of a failed mutation
     (N classify calls → N session refetches).

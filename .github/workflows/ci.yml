@@ -101,8 +101,10 @@ jobs:
       - name: Smoke-test the container
         run: |
           # Production refuses to start without admin credentials; these are the
-          # test-only ones from playwright.config.ts.
+          # test-only ones from playwright.config.ts, whose cheap hash production
+          # accepts only with ALLOW_WEAK_ADMIN_HASH.
           docker run -d --name cocktail -p 3000:3000 \
+            -e ALLOW_WEAK_ADMIN_HASH=true \
             -e ADMIN_USERNAME=admin \
             -e 'ADMIN_PASSWORD_HASH=scrypt$1024$8$1$Y29ja3RhaWwtdGVzdC1zYWx0$SrCe7cQgqgEmwhEu4/R56wDLexjTLseaW2nJIWA78e0qu6feX2AcMaLgvRY6NqW4Mi2PMw9HRvKPTN9lYuaIQA==' \
             cocktail:ci

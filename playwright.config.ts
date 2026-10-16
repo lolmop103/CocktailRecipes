@@ -35,7 +35,9 @@ export default defineConfig({
       CLIENT_ORIGIN: BASE_URL,
       DATA_DIR: join(tmpdir(), `cocktail-e2e-${String(process.pid)}`),
       LOG_LEVEL: 'warn',
-      // Test-only credentials (cheap hash of 'test-admin-password'); never used elsewhere.
+      // Test-only credentials (cheap hash of 'test-admin-password', public in this
+      // repo). Production refuses a hash this cheap unless told it is a test.
+      ALLOW_WEAK_ADMIN_HASH: 'true',
       ADMIN_USERNAME: 'admin',
       ADMIN_PASSWORD_HASH:
         'scrypt$1024$8$1$Y29ja3RhaWwtdGVzdC1zYWx0$SrCe7cQgqgEmwhEu4/R56wDLexjTLseaW2nJIWA78e0qu6feX2AcMaLgvRY6NqW4Mi2PMw9HRvKPTN9lYuaIQA==',
