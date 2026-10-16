@@ -25,11 +25,10 @@ import {
 import type { Collection, IngredientMeta, Recipe } from './types/index.js';
 import { flattenPages } from './utils/pages.js';
 import { useSession } from '@/features/Auth/hooks/useSession.js';
-import { ApiError } from '@/lib/http.js';
+import { messageFor } from '@/lib/http.js';
 
 /** Long enough to swallow a burst of typing, short enough to feel live. */
 const SEARCH_DEBOUNCE_MS = 250;
-const TOO_MANY_REQUESTS = 429;
 
 /** One empty list for every render, so memoised cards see the same prop. */
 const NO_COLLECTIONS: Collection[] = [];
@@ -122,17 +121,15 @@ export const RecipesPage = ({ tab }: Props) => {
   // A failed next page is reported on the Show more button, not as a page error.
   const message =
     recipesQuery.isError && !recipesQuery.isFetchNextPageError
-      ? recipesQuery.error instanceof ApiError && recipesQuery.error.status === TOO_MANY_REQUESTS
-        ? recipesQuery.error.message
-        : 'Could not load recipes. Is the server running?'
+      ? messageFor(recipesQuery.error, 'Could not load recipes. Is the server running?')
       : ingredientsQuery.isError
-        ? 'Could not load the ingredient list.'
+        ? messageFor(ingredientsQuery.error, 'Could not load the ingredient list.')
         : collectionsQuery.isError
-          ? 'Could not load collections.'
+          ? messageFor(collectionsQuery.error, 'Could not load collections.')
           : deleteRecipe.isError
-            ? 'Could not delete that recipe.'
+            ? messageFor(deleteRecipe.error, 'Could not delete that recipe.')
             : rateRecipe.isError
-              ? 'Failed to save rating.'
+              ? messageFor(rateRecipe.error, 'Failed to save rating.')
               : null;
 
   const handleClassifyIngredients = async (results: { name: string; isAlcoholic: boolean }[]) => {
@@ -218,6 +215,7 @@ export const RecipesPage = ({ tab }: Props) => {
             // requested from stale offsets could skip a recipe.
             isLoading={recipesQuery.isFetching}
             isError={recipesQuery.isFetchNextPageError}
+            errorMessage={messageFor(recipesQuery.error, 'Could not load more recipes.')}
             onLoadMore={loadMore}
           />
         </main>

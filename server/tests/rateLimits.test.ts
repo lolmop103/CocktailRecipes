@@ -132,3 +132,45 @@ describe('client IP behind one proxy', () => {
     expect(res.status).toBe(429);
   });
 });
+
+describe('proxy trust', () => {
+  it('trustProxy_zeroHops_isFalseSoMisconfigurationIsReported', () => {
+    expect(createApp().get('trust proxy')).toBe(false);
+  });
+
+  it('trustProxy_oneHop_isOne', async () => {
+    const app = await appBehindProxy();
+
+    expect(app.get('trust proxy')).toBe(1);
+  });
+});
+
+describe('login limit — only wrong credentials count', () => {
+  it('login_crossSiteAttempts_doNotLockOutTheAdmin', async () => {
+    const app = createApp();
+    await repeat(LOGIN_FAILURES + 1, () =>
+      request(app).post('/api/auth/login').set('Origin', 'https://evil.example').send(TEST_ADMIN),
+    );
+
+    const res = await request(app)
+      .post('/api/auth/login')
+      .set('Origin', TEST_ORIGIN)
+      .send(TEST_ADMIN);
+
+    expect(res.status).toBe(204);
+  });
+
+  it('login_malformedBodies_doNotCount', async () => {
+    const app = createApp();
+    await repeat(LOGIN_FAILURES + 1, () =>
+      request(app).post('/api/auth/login').set('Origin', TEST_ORIGIN).send({ username: '' }),
+    );
+
+    const res = await request(app)
+      .post('/api/auth/login')
+      .set('Origin', TEST_ORIGIN)
+      .send(TEST_ADMIN);
+
+    expect(res.status).toBe(204);
+  });
+});

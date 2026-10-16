@@ -16,7 +16,9 @@ export function createApp(): Express {
   const app = express();
   // Behind the owner's Caddy this is 1, so req.ip is the address Caddy saw —
   // never one a client wrote into X-Forwarded-For itself.
-  app.set('trust proxy', env.TRUST_PROXY_HOPS);
+  // 0 hops becomes `false`, not 0: only then does the rate limiter report a
+  // request that arrives with X-Forwarded-For — the sign of a forgotten setting.
+  app.set('trust proxy', env.TRUST_PROXY_HOPS || false);
 
   // Security
   app.use(helmet());

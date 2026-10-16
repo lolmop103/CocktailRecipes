@@ -5,6 +5,8 @@ interface Props {
   hasMore: boolean;
   isLoading: boolean;
   isError: boolean;
+  /** Shown when the last page failed; the server's message for a 429. */
+  errorMessage?: string;
   onLoadMore: () => void;
 }
 
@@ -13,7 +15,13 @@ interface Props {
  * nears the viewport; the button is the same trigger for keyboard and
  * screen-reader users, and the way to retry after a failed load.
  */
-export const LoadMore = ({ hasMore, isLoading, isError, onLoadMore }: Props) => {
+export const LoadMore = ({
+  hasMore,
+  isLoading,
+  isError,
+  errorMessage = 'Could not load more recipes.',
+  onLoadMore,
+}: Props) => {
   const sentinel = useRef<HTMLDivElement>(null);
   useLoadMoreOnVisible(sentinel, hasMore && !isLoading && !isError, onLoadMore);
 
@@ -26,7 +34,7 @@ export const LoadMore = ({ hasMore, isLoading, isError, onLoadMore }: Props) => 
       <div ref={sentinel} className="load-more__sentinel" aria-hidden="true" />
       {isError && (
         <p role="status" className="load-more__status">
-          Could not load more recipes.
+          {errorMessage}
         </p>
       )}
       {/* aria-disabled rather than disabled: a disabled button would drop

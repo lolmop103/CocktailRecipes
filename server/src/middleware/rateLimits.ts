@@ -4,6 +4,7 @@ import { LOGIN_FAILURE_LIMIT, READ_LIMIT, WRITE_LIMIT } from '../config/limits.j
 
 const READ_METHODS = new Set(['GET', 'HEAD']);
 const MESSAGE = 'Too many requests — try again in a moment';
+const UNAUTHORIZED = 401;
 
 /** The library records its counters on the request under `rateLimit`. */
 type LimitedRequest = Request & { rateLimit?: RateLimitInfo };
@@ -47,7 +48,10 @@ export function createRateLimiters(): {
     loginFailures: rateLimit({
       ...common,
       ...LOGIN_FAILURE_LIMIT,
+      // Only wrong credentials count. A cross-site POST (403) or a malformed body
+      // (400) sent from a page the admin visits must not lock the admin out.
       skipSuccessfulRequests: true,
+      requestWasSuccessful: (_req, res) => res.statusCode !== UNAUTHORIZED,
     }),
   };
 }

@@ -489,3 +489,38 @@ describe('RecipesPage — rate limited', () => {
     expect(screen.queryByText(/Is the server running/)).not.toBeInTheDocument();
   });
 });
+
+describe('RecipesPage — rate limited elsewhere', () => {
+  it('RecipesPage_ingredients429_showsServerMessage', async () => {
+    const { ApiError: RealApiError } = await import('../src/lib/http.js');
+    api.getIngredients.mockRejectedValue(
+      new RealApiError(429, 'Too many requests — try again in a moment', []),
+    );
+
+    renderWithProviders(<RecipesPage tab="cocktail" />, { route: '/cocktails' });
+
+    expect(
+      await screen.findByText('Too many requests — try again in a moment'),
+    ).toBeInTheDocument();
+  });
+
+  it('RecipesPage_create429_dialogShowsServerMessage', async () => {
+    const { ApiError: RealApiError } = await import('../src/lib/http.js');
+    api.create.mockRejectedValue(
+      new RealApiError(429, 'Too many requests — try again in a moment', []),
+    );
+    await renderPage();
+    fireEvent.click(screen.getByRole('button', { name: '+ New Recipe' }));
+    const dialog = screen.getByRole('dialog', { name: 'Add new recipe' });
+    fireEvent.change(within(dialog).getByLabelText('Name *'), { target: { value: 'Busy Sour' } });
+    fireEvent.change(within(dialog).getByRole('combobox', { name: 'Ingredient 1 name' }), {
+      target: { value: 'gin' },
+    });
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Create Recipe' }));
+
+    expect(
+      await within(dialog).findByText('Too many requests — try again in a moment'),
+    ).toBeInTheDocument();
+  });
+});
