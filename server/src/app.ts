@@ -8,6 +8,7 @@ import { router } from './routes/index.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { env } from './config/env.js';
 import { createRateLimiters } from './middleware/rateLimits.js';
+import { apiCacheHeaders, NO_CACHE, staticCacheHeaders } from './middleware/cacheHeaders.js';
 
 const API_PREFIX = '/api';
 
@@ -36,7 +37,7 @@ export function createApp(): Express {
   app.use(express.json({ limit: '64kb' }));
 
   // Routes
-  app.use(API_PREFIX, router);
+  app.use(API_PREFIX, apiCacheHeaders, router);
 
   // Anything under /api that got this far does not exist. This must be
   // registered before the SPA fallback, otherwise the fallback would answer
@@ -49,11 +50,12 @@ export function createApp(): Express {
   if (env.NODE_ENV === 'production') {
     const clientDist = resolve(process.cwd(), 'client', 'dist');
     if (existsSync(clientDist)) {
-      app.use(express.static(clientDist));
+      app.use(express.static(clientDist, { cacheControl: false, setHeaders: staticCacheHeaders }));
       // Express 5 (path-to-regexp v8) no longer accepts a bare '*'; the
       // wildcard must be named.
       app.get('/{*splat}', (_req, res) => {
-        res.sendFile(resolve(clientDist, 'index.html'));
+        res.set('Cache-Control', NO_CACHE);
+        res.sendFile(resolve(clientDist, 'index.html'), { cacheControl: false });
       });
     }
   }
