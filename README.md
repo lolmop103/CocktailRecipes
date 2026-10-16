@@ -133,8 +133,9 @@ docker compose up --build
 The image serves the built client from Express on port 3000, runs as the
 unprivileged `node` user, and keeps the database on the `cocktail-db` volume at
 `/data`. It runs in production mode, so `.env` needs `ADMIN_USERNAME` and
-`ADMIN_PASSWORD_HASH`. It is published on port 3000; if that port is taken, set
-`HOST_PORT` in `.env` (e.g. `HOST_PORT=3009`) and open that port instead.
+`ADMIN_PASSWORD_HASH`. It is published on http://localhost:3009, a port
+chosen to run alongside other local Docker stacks; set `HOST_PORT` in `.env` to
+use another one.
 
 For a real deployment behind Caddy, use `compose.prod.yaml` and follow
 [docs/deploy.md](docs/deploy.md).
