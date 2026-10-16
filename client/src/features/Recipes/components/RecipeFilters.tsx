@@ -10,6 +10,8 @@ import { ManageIngredientsPanel } from './ManageIngredientsPanel.js';
 import { StarRatingFilter } from './StarRatingFilter.js';
 
 interface Props {
+  /** Only the admin may reclassify ingredients. */
+  canEdit: boolean;
   filters: RecipeFiltersState;
   knownIngredients: IngredientMeta[];
   collections: Collection[];
@@ -20,6 +22,7 @@ interface Props {
 }
 
 export const RecipeFilters = ({
+  canEdit,
   filters,
   knownIngredients,
   collections,
@@ -61,18 +64,20 @@ export const RecipeFilters = ({
           hideAlcoholic={hideAlcoholicIngredients}
           onChange={(v) => onChange('ingredients', v)}
         />
-        <button
-          type="button"
-          className="btn-manage-ing"
-          aria-label="Manage ingredient classifications"
-          title="Manage ingredients"
-          onClick={() => setShowManage((v) => !v)}
-        >
-          ⚙
-        </button>
+        {canEdit && (
+          <button
+            type="button"
+            className="btn-manage-ing"
+            aria-label="Manage ingredient classifications"
+            title="Manage ingredients"
+            onClick={() => setShowManage((v) => !v)}
+          >
+            ⚙
+          </button>
+        )}
       </div>
 
-      {showManage && (
+      {canEdit && showManage && (
         <ManageIngredientsPanel
           knownIngredients={knownIngredients}
           onUpdate={onUpdateIngredientMeta}

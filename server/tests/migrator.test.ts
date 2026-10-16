@@ -64,9 +64,9 @@ describe('migrate', () => {
     const db = freshDb();
     migrate(db);
 
-    // Pretend the newest migration had not run yet.
-    const newest = MIGRATIONS.at(-1)!;
-    db.prepare('DELETE FROM schema_migrations WHERE version = ?').run(newest.version);
+    // Pretend migrations 4 and 5 had not run yet: undo what each created.
+    db.prepare('DELETE FROM schema_migrations WHERE version >= 4').run();
+    db.exec('DROP TABLE sessions');
     db.exec('DROP TABLE collection_recipes');
     db.exec(`CREATE TABLE collection_recipes (
       collection_id TEXT NOT NULL REFERENCES collections(id) ON DELETE CASCADE,
@@ -76,7 +76,7 @@ describe('migrate', () => {
 
     migrate(db);
 
-    expect(appliedVersions(db)).toContain(newest.version);
+    expect(appliedVersions(db)).toEqual(MIGRATIONS.map((m) => m.version));
   });
 
   it('usesUniqueVersions_inOrder', () => {

@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
+import { loginAsAdmin } from './helpers/login.js';
 
 test('rating a recipe persists across a reload', async ({ page }) => {
+  await loginAsAdmin(page);
   await page.goto('/cocktails');
 
   // Espresso Martini ships unrated.

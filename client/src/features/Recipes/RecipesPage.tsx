@@ -24,6 +24,7 @@ import {
 } from './hooks/useRecipeQueries.js';
 import type { Collection, IngredientMeta, Recipe } from './types/index.js';
 import { flattenPages } from './utils/pages.js';
+import { useSession } from '@/features/Auth/hooks/useSession.js';
 
 /** Long enough to swallow a burst of typing, short enough to feel live. */
 const SEARCH_DEBOUNCE_MS = 250;
@@ -43,6 +44,7 @@ export const RecipesPage = ({ tab }: Props) => {
 
   const { filters, updateFilter, resetFilters } = useFilterParams(isMocktail);
   const { unit, toggle: toggleUnit } = useUnit();
+  const { isAdmin } = useSession();
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
@@ -147,6 +149,7 @@ export const RecipesPage = ({ tab }: Props) => {
 
       <div className="recipes-layout">
         <RecipeFiltersPanel
+          canEdit={isAdmin}
           filters={filters}
           knownIngredients={knownIngredients}
           collections={collections}
@@ -168,9 +171,15 @@ export const RecipesPage = ({ tab }: Props) => {
               onToggleUnit={toggleUnit}
               onChange={updateFilter}
             />
-            <button type="button" className="btn-add-recipe" onClick={() => setShowAddModal(true)}>
-              + New Recipe
-            </button>
+            {isAdmin && (
+              <button
+                type="button"
+                className="btn-add-recipe"
+                onClick={() => setShowAddModal(true)}
+              >
+                + New Recipe
+              </button>
+            )}
           </div>
 
           <div aria-live="polite" aria-atomic="true">
@@ -186,6 +195,7 @@ export const RecipesPage = ({ tab }: Props) => {
               <RecipeCard
                 key={recipe.id}
                 recipe={recipe}
+                canEdit={isAdmin}
                 unit={unit}
                 collections={collections}
                 onRate={handleRate}
@@ -209,6 +219,7 @@ export const RecipesPage = ({ tab }: Props) => {
         </main>
       </div>
 
+      {/* Not gated on isAdmin: a session ending mid-edit must not discard the form. */}
       {showAddModal && (
         <AddRecipeModal
           knownIngredients={knownIngredients}

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { createCollectionSchema } from '@cocktail/shared';
 import { parseOrThrow } from '../lib/validation.js';
+import { requireAdmin } from '../middleware/requireAdmin.js';
 import { collectionService } from '../services/collectionService.js';
 
 export const collectionsRouter = Router();
@@ -11,23 +12,23 @@ collectionsRouter.get('/', (_req, res) => {
 });
 
 // POST /api/collections
-collectionsRouter.post('/', (req, res) => {
+collectionsRouter.post('/', requireAdmin, (req, res) => {
   const { name } = parseOrThrow(createCollectionSchema, req.body);
   res.status(201).json(collectionService.create(name));
 });
 
 // POST /api/collections/:id/recipes/:recipeId
-collectionsRouter.post('/:id/recipes/:recipeId', (req, res) => {
+collectionsRouter.post('/:id/recipes/:recipeId', requireAdmin, (req, res) => {
   res.json(collectionService.addRecipe(req.params.id, req.params.recipeId));
 });
 
 // DELETE /api/collections/:id/recipes/:recipeId
-collectionsRouter.delete('/:id/recipes/:recipeId', (req, res) => {
+collectionsRouter.delete('/:id/recipes/:recipeId', requireAdmin, (req, res) => {
   res.json(collectionService.removeRecipe(req.params.id, req.params.recipeId));
 });
 
 // DELETE /api/collections/:id
-collectionsRouter.delete('/:id', (req, res) => {
+collectionsRouter.delete('/:id', requireAdmin, (req, res) => {
   collectionService.remove(req.params.id);
   res.status(204).send();
 });

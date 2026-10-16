@@ -100,7 +100,12 @@ jobs:
 
       - name: Smoke-test the container
         run: |
-          docker run -d --name cocktail -p 3000:3000 cocktail:ci
+          # Production refuses to start without admin credentials; these are the
+          # test-only ones from playwright.config.ts.
+          docker run -d --name cocktail -p 3000:3000 \
+            -e ADMIN_USERNAME=admin \
+            -e 'ADMIN_PASSWORD_HASH=scrypt$1024$8$1$Y29ja3RhaWwtdGVzdC1zYWx0$SrCe7cQgqgEmwhEu4/R56wDLexjTLseaW2nJIWA78e0qu6feX2AcMaLgvRY6NqW4Mi2PMw9HRvKPTN9lYuaIQA==' \
+            cocktail:ci
           for i in $(seq 1 30); do
             if curl -fsS http://localhost:3000/api/health; then
               echo "container is healthy"
