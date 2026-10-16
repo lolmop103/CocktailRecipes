@@ -25,9 +25,11 @@ import {
 import type { Collection, IngredientMeta, Recipe } from './types/index.js';
 import { flattenPages } from './utils/pages.js';
 import { useSession } from '@/features/Auth/hooks/useSession.js';
+import { ApiError } from '@/lib/http.js';
 
 /** Long enough to swallow a burst of typing, short enough to feel live. */
 const SEARCH_DEBOUNCE_MS = 250;
+const TOO_MANY_REQUESTS = 429;
 
 /** One empty list for every render, so memoised cards see the same prop. */
 const NO_COLLECTIONS: Collection[] = [];
@@ -120,7 +122,9 @@ export const RecipesPage = ({ tab }: Props) => {
   // A failed next page is reported on the Show more button, not as a page error.
   const message =
     recipesQuery.isError && !recipesQuery.isFetchNextPageError
-      ? 'Could not load recipes. Is the server running?'
+      ? recipesQuery.error instanceof ApiError && recipesQuery.error.status === TOO_MANY_REQUESTS
+        ? recipesQuery.error.message
+        : 'Could not load recipes. Is the server running?'
       : ingredientsQuery.isError
         ? 'Could not load the ingredient list.'
         : collectionsQuery.isError
