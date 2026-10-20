@@ -61,9 +61,12 @@ docker build -t cocktail . && docker run -p 3105:3000 cocktail   # image smoke t
   `client/vite.config.ts` is hard-coded to `http://localhost:3000` — see the open
   items.
 - **Docker ports on this machine:** CocktailRecipes `docker compose up` →
-  http://localhost:3009 (`HOST_PORT`, project `cocktailrecipes`). Taken by the
-  other projects: 3000 (a Node process), CurvyRoads 3001–3003 and 5434, BinMark
-  5433 and 8080. Keep new stacks off these.
+  http://localhost:3009 (`HOST_PORT`, project `cocktailrecipes`). The test stack
+  (`docker-compose-test.yml`, project `cocktailrecipes-test`) publishes nothing
+  itself: BinMark's local edge serves it on 8290 (http) and 8291 (https,
+  `LAN_HOST=192.168.0.191`). Taken by the other projects: 3000 (a Node process),
+  CurvyRoads 3001–3003 and 5434, BinMark 5433 and 8080, the local edge 8081,
+  8443, 8090/8091 and 8190/8191. Keep new stacks off these.
 - **npm 11 `allowScripts`:** `npm ci` warns that the install scripts of
   `better-sqlite3` and `esbuild` are not covered; on 2026-10-15 both native
   binaries were present after `npm ci` anyway.
@@ -104,6 +107,12 @@ Checked on 2026-10-16: `npm run verify` green (server 277 tests, client 276),
 network (no published ports, health 200, anonymous write 401, cross-site write
 403, `__Host-` Secure session cookie). `npm run probe`: worst filter ≤ 30 ms
 and health p95 during a single-IP flood 15–28 ms (387 ms without the limiter).
+
+On 2026-10-20 a test stack was added (`docker-compose-test.yml`, spec
+`docs/superpowers/specs/2026-10-20-test-stack-design.md`): production's own
+container behind BinMark's local edge, for a demo on the home network (README,
+"Show it on your network"). It needs BinMark's `sites-local/cocktailrecipes-test.caddy`
+(BinMark PR #61).
 
 **Open items:**
 

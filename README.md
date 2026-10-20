@@ -141,6 +141,35 @@ use another one.
 For a real deployment behind Caddy, use `compose.prod.yaml` and follow
 [docs/deploy.md](docs/deploy.md).
 
+## Show it on your network
+
+`docker-compose-test.yml` runs production's own container behind the local edge
+Caddy from the [BinMark](https://github.com/lolmop103/BinMark) repo
+(`infra/edge/compose.local.yml`), which adds HTTPS and compression as the server's
+Caddy would. It has its own volume and publishes no port of its own.
+
+```bash
+docker compose -f ../BinMark/infra/edge/compose.local.yml up -d   # the edge, first
+docker compose -f docker-compose-test.yml up -d --build
+```
+
+It needs `ADMIN_USERNAME` and `ADMIN_PASSWORD_HASH` in `.env`, and `LAN_HOST`: this
+PC's IPv4 address (`ipconfig`), the same value as in the edge's `.env`.
+
+| Address                   | Browse | Log in and edit |
+| ------------------------- | ------ | --------------- |
+| `https://<LAN_HOST>:8291` | yes    | yes             |
+| `https://localhost:8291`  | yes    | no              |
+| `http://localhost:8290`   | yes    | no              |
+
+The app accepts changes from one address only, so log in at the LAN address, on
+the PC as well. The certificate comes from the edge's own authority: friends click
+through the warning once; for your own phone, trust the edge's root certificate as
+described in BinMark's `infra/edge/README.md` ("Phones and other devices").
+
+`docker compose -f docker-compose-test.yml down` keeps the recipes; `down -v`
+resets them to the eight classics.
+
 ## Contributing
 
 See [AGENTS.md](AGENTS.md) for the development workflow and [AGENT.md](AGENT.md) for
