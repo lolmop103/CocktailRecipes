@@ -1,0 +1,56 @@
+# Production's own container on this machine, for a test or a demo on the home
+# network. Not a deployment: for a server use compose.prod.yaml (docs/deploy.md).
+#
+# Runs behind the local edge from the BinMark repo (infra/edge/compose.local.yml),
+# as it would behind the shared server's Caddy: the edge is the only way in
+# (ports 8290 and 8291, certificates, compression). Start the edge first; this
+# stack joins its network `edge` and refuses to start without it.
+#
+#   docker compose -f ../BinMark/infra/edge/compose.local.yml up -d   # once, first
+#   docker compose -f docker-compose-test.yml up -d --build
+#   open http://localhost:8290
+#
+# Every device on the network opens https://<LAN_HOST>:8291, and that is the one
+# address where the admin can log in and change recipes: the app accepts changes
+# from a single origin. http://localhost:8290 and https://localhost:8291 browse
+# only. LAN_HOST goes in .env and must equal LAN_HOST in the edge's .env.
+#
+# The certificate comes from the edge's own authority: visitors click through the
+# warning once; for the admin's phone, trust the edge's root certificate (BinMark,
+# infra/edge/README.md, "Phones and other devices").
+#
+# The service extends production's and replaces only the local parts: no env file
+# (.env holds development values), the edge network, its own image tag and volume.
+# Needs ADMIN_USERNAME and ADMIN_PASSWORD_HASH in .env. `down` keeps the data;
+# `down -v` resets it to the eight seeded classics.
+name: cocktailrecipes-test
+
+services:
+  app:
+    extends:
+      file: compose.prod.yaml
+      service: cocktail
+    # Never retag production's cocktail:latest.
+    image: cocktailrecipes-test-app
+    env_file: !reset []
+    environment:
+      # The edge's Caddy is the one proxy in front. Fixed here, because production
+      # reads ${TRUST_PROXY_HOPS} and the development .env may set it to 0.
+      TRUST_PROXY_HOPS: '1'
+      CLIENT_ORIGIN: https://${LAN_HOST:-localhost}:8291
+      ADMIN_USERNAME: ${ADMIN_USERNAME:?set ADMIN_USERNAME in .env}
+      ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:?set ADMIN_PASSWORD_HASH in .env}
+    networks: !override
+      default: {}
+      edge:
+        aliases: [cocktailrecipes-test-app]
+
+volumes:
+  # No fixed name: cocktailrecipes-test_cocktail-db, never production's cocktail-prod-db.
+  cocktail-db: {}
+
+networks:
+  # Created by the local edge (BinMark: infra/edge/compose.local.yml); start it first.
+  edge:
+    external: true
+    name: edge
