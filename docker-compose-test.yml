@@ -34,6 +34,9 @@ services:
     image: cocktailrecipes-test-app
     env_file: !reset []
     environment:
+      # The edge's Caddy is the one proxy in front. Fixed here, because production
+      # reads ${TRUST_PROXY_HOPS} and the development .env may set it to 0.
+      TRUST_PROXY_HOPS: '1'
       CLIENT_ORIGIN: https://${LAN_HOST:-localhost}:8291
       ADMIN_USERNAME: ${ADMIN_USERNAME:?set ADMIN_USERNAME in .env}
       ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:?set ADMIN_PASSWORD_HASH in .env}
