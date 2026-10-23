@@ -27,7 +27,7 @@ docs/superpowers/plans/   implementation plans, one per spec, dated
 
 This process is not optional. It is what keeps a large change reviewable.
 
-0. **Start every session with a dependency check** (skill
+0. **Start the first session of the day with a dependency check** (skill
    `checking-dependency-freshness`): `npm outdated` and `npm audit` at the repo
    root (it covers every workspace), the `node:` image tag in the `Dockerfile`,
    the action versions in `.github/workflows/ci.yml`, and e18e
