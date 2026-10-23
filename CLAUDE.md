@@ -77,8 +77,8 @@ docker build -t cocktail . && docker run -p 3105:3000 cocktail   # image smoke t
 
 ## Versions held on purpose
 
-Everything else is "latest stable and compatible", checked at the start of each
-session (`checking-dependency-freshness`). Each hold, its reason and when to
+Everything else is "latest stable and compatible", checked in the first session of
+each day (`checking-dependency-freshness`). Each hold, its reason and when to
 revisit it:
 
 | Package                         | Held at       | Reason                                                                                                                                                                       | Revisit when                                                                 |
