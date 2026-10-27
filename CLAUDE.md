@@ -114,6 +114,17 @@ container behind BinMark's local edge, for a demo on the home network (README,
 "Show it on your network"). It needs BinMark's `sites-local/cocktailrecipes-test.caddy`
 (BinMark PR #61).
 
+**Next, after the manual test pass: automatic deploys** (designed 2026-10-23, no
+spec yet). A release on `main` deploys only this app: the release job runs
+`deploy cocktailrecipes <tag>` over SSH with a forced-command key, and the server
+script pulls the image, checks `/api/health` and rolls back to the previous tag on
+failure; a manual "Deploy" run uses the same script. Plain Docker Compose, no Swarm.
+Needed first: the release workflow publishes a container image (the server stops
+building), and `compose.prod.yaml` joins the shared edge network (`CADDY_NETWORK=edge`)
+under an alias like `cocktailrecipes-app`.
+The swap is a short restart covered by the edge's retries (SQLite rules out two
+containers at once).
+
 **Open items:**
 
 - **Re-measure `npm run probe` on the VPS.** The typical-filter row (budget
