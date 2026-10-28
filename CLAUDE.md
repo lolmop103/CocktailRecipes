@@ -88,6 +88,7 @@ revisit it:
 | `@types/node`                   | 22            | Follows the Node 22 runtime of CI and the Docker image                                                                                                                       | the runtime moves to Node 24                                                 |
 | Docker `node:22-alpine`         | 22            | Same runtime as CI (`node-version: 22`)                                                                                                                                      | the runtime moves to Node 24                                                 |
 | `vitest`, `@vitest/coverage-v8` | exactly 5.0.4 | 5.0.5 changed the `Assertion` type so `@testing-library/jest-dom/vitest` no longer augments it; client `tsc` and lint fail on every `toBeInTheDocument` (checked 2026-10-16) | a `vitest` or `@testing-library/jest-dom` release restores the matcher types |
+| `@vitest/eslint-plugin`         | 1.6.27        | 1.6.28 added a peer `typescript >=6.0.0`, which the `typescript` hold rules out (checked 2026-10-28)                                                                         | the project moves to TypeScript 6                                            |
 
 ## Current status & next steps (updated 2026-10-16)
 
