@@ -19,7 +19,7 @@ services:
       PORT: '3000'
       DATA_DIR: /data
       LOG_LEVEL: info
-      # Required in production: create the hash with `npm run hash-password --workspace=server`.
+      # Required in production: create the hash with `pnpm --filter cocktail-server hash-password`.
       ADMIN_USERNAME: ${ADMIN_USERNAME:?set ADMIN_USERNAME in .env}
       ADMIN_PASSWORD_HASH: ${ADMIN_PASSWORD_HASH:?set ADMIN_PASSWORD_HASH in .env}
       # Express serves the client too, so the site's origin is this host and port.

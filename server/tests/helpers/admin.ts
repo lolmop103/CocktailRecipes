@@ -5,7 +5,7 @@ import type { Express } from 'express';
 /**
  * Test-only admin credentials. The hash uses a deliberately low scrypt cost
  * (N=1024) so logins in tests are fast; production hashes come from
- * `npm run hash-password` with the full cost. Never use these anywhere else.
+ * `pnpm --filter cocktail-server hash-password` with the full cost. Never use these anywhere else.
  */
 export const TEST_ADMIN = { username: 'admin', password: 'test-admin-password' } as const;
 

@@ -31,8 +31,8 @@ cd CocktailRecipes
 ## 1. Create the admin password hash
 
 ```bash
-npm ci
-npm run hash-password --workspace=server
+pnpm install --frozen-lockfile
+pnpm --filter cocktail-server hash-password
 ```
 
 It asks for the password twice (at least 12 characters, nothing is echoed) and
