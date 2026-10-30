@@ -1,5 +1,5 @@
 /**
- * `npm run hash-password --workspace=server`
+ * `pnpm --filter cocktail-server hash-password`
  *
  * Asks for the admin password twice without echoing it and prints the line to
  * put in `.env`. The password itself is never written anywhere.

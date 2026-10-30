@@ -8,7 +8,7 @@ Stack: Node.js · Express 5 · React 19 · TypeScript 5 · Vite 8 · Vitest 5 ·
 
 | Layer      | Technology              | Version |
 | ---------- | ----------------------- | ------- |
-| Runtime    | Node.js                 | ≥22 LTS |
+| Runtime    | Node.js                 | 24 LTS  |
 | Backend    | Express                 | ^5.2    |
 | Frontend   | React                   | ^19     |
 | Routing    | React Router            | ^7      |
@@ -28,35 +28,35 @@ Stack: Node.js · Express 5 · React 19 · TypeScript 5 · Vite 8 · Vitest 5 ·
 
 ```bash
 # Root (monorepo)
-npm install                   # install all workspaces
-npm run dev                   # start server + client (concurrent)
-npm run build                 # build all workspaces
-npm run test                  # run all tests
-npm run lint                  # lint all workspaces
-npm run typecheck             # typecheck all workspaces
-npm run format                # prettier --write .
-npm run format:check          # prettier --check . (CI gate)
-npm run knip                  # unused files, exports and dependencies
-npm run test:coverage         # tests + 80% coverage gate
-npm run verify                # format + lint + typecheck + knip + coverage
-npm run e2e                   # Playwright: builds, serves the prod bundle on :3100, drives Chromium
-npm run probe                 # read-path budget probe against the prod build (run npm run build first)
+pnpm install                   # install all workspaces
+pnpm dev                   # start server + client (concurrent)
+pnpm build                 # build all workspaces
+pnpm test                  # run all tests
+pnpm lint                  # lint all workspaces
+pnpm typecheck             # typecheck all workspaces
+pnpm format                # prettier --write .
+pnpm format:check          # prettier --check . (CI gate)
+pnpm knip                  # unused files, exports and dependencies
+pnpm test:coverage         # tests + 80% coverage gate
+pnpm verify                # format + lint + typecheck + knip + coverage
+pnpm e2e                   # Playwright: builds, serves the prod bundle on :3100, drives Chromium
+pnpm probe                 # read-path budget probe against the prod build (run pnpm build first)
 
 # Server workspace
 cd server
-npm run dev                   # tsx watch mode
-npm run build                 # tsc -p tsconfig.build.json -> dist/
-npm run test                  # vitest
-npm run lint                  # eslint .
-npm run typecheck             # tsc --noEmit
+pnpm dev                   # tsx watch mode
+pnpm build                 # tsc -p tsconfig.build.json -> dist/
+pnpm test                  # vitest
+pnpm lint                  # eslint .
+pnpm typecheck             # tsc --noEmit
 
 # Client workspace
 cd client
-npm run dev                   # vite dev server
-npm run build                 # vite build to dist/
-npm run test                  # vitest
-npm run lint                  # eslint .
-npm run typecheck             # tsc --noEmit
+pnpm dev                   # vite dev server
+pnpm build                 # vite build to dist/
+pnpm test                  # vitest
+pnpm lint                  # eslint .
+pnpm typecheck             # tsc --noEmit
 ```
 
 ---
@@ -97,7 +97,7 @@ npm run typecheck             # tsc --noEmit
 - `any` type without documented justification
 - `console.log` in production code (use logger)
 - Hardcoded secrets, credentials, or connection strings
-- `npm install --save` without updating lock file
+- `npm` of any kind (the repository is pnpm; `devEngines` refuses it), and a dependency change without the updated `pnpm-lock.yaml`
 - Merging to main without passing CI
 - `TODO` comments in committed code
 - Magic numbers / strings — use named constants
@@ -114,4 +114,4 @@ committed with the code:
 
 The wider AOP agent toolkit (protocol, agents, cross-project skills) lives
 outside this repository and is not required to build, test or run the project.
-Everything needed is in `npm run verify`.
+Everything needed is in `pnpm verify`.

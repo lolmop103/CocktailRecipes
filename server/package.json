@@ -19,7 +19,7 @@
     "hash-password": "tsx src/scripts/hashPassword.ts"
   },
   "dependencies": {
-    "@cocktail/shared": "*",
+    "@cocktail/shared": "workspace:*",
     "better-sqlite3": "^12.9.0",
     "cors": "^2.8.5",
     "express": "^5.3.0",

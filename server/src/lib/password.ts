@@ -70,15 +70,15 @@ export async function verifyPassword(password: string, encoded: string): Promise
  */
 export function adminHashProblem(encoded: string, { allowWeak }: { allowWeak: boolean }) {
   const match = FORMAT.exec(encoded);
-  if (!match) return 'must be a hash from `npm run hash-password`';
+  if (!match) return 'must be a hash from `pnpm --filter cocktail-server hash-password`';
   const [N, r, p] = match.slice(1, 4).map(Number) as [number, number, number];
 
   const powerOfTwo = N > 1 && (N & (N - 1)) === 0;
   if (!powerOfTwo || r < 1 || p < 1 || 128 * N * r > MAX_MEMORY) {
-    return 'cannot be verified (unusable scrypt cost); create one with `npm run hash-password`';
+    return 'cannot be verified (unusable scrypt cost); create one with `pnpm --filter cocktail-server hash-password`';
   }
   if (!allowWeak && (N < COST.N || r < COST.r || p < COST.p)) {
-    return 'is too cheap to compute, like the test-only hash; create one with `npm run hash-password`';
+    return 'is too cheap to compute, like the test-only hash; create one with `pnpm --filter cocktail-server hash-password`';
   }
   return null;
 }

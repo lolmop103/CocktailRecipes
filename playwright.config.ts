@@ -25,7 +25,7 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: 'npm run build && node server/dist/index.js',
+    command: 'pnpm build && node server/dist/index.js',
     url: `${BASE_URL}/api/health`,
     reuseExistingServer: false,
     timeout: 180_000,

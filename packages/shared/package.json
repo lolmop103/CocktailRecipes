@@ -23,7 +23,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "prepare": "npm run build",
+    "prepare": "pnpm run build",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },

@@ -28,10 +28,10 @@ docs/superpowers/plans/   implementation plans, one per spec, dated
 This process is not optional. It is what keeps a large change reviewable.
 
 0. **Start the first session of the day with a dependency check** (skill
-   `checking-dependency-freshness`): `npm outdated` and `npm audit` at the repo
+   `checking-dependency-freshness`): `pnpm outdated -r` and `pnpm audit` at the repo
    root (it covers every workspace), the `node:` image tag in the `Dockerfile`,
    the action versions in `.github/workflows/ci.yml`, and e18e
-   (`npx @e18e/cli analyze`; the `@e18e/eslint-plugin` recommended config is
+   (`pnpm dlx @e18e/cli analyze`; the `@e18e/eslint-plugin` recommended config is
    already active in every workspace). Holds are justified only by the "Versions
    held on purpose" list in `CLAUDE.md`. Report, then continue the real work;
    upgrades go to a `chore/deps-<date>` branch, never into a feature branch.
@@ -83,20 +83,20 @@ repositories. Agent bookkeeping (`tasks/`, `kb/`) stays local and gitignored.
 
 The full list is in `AGENT.md`. The ones that gate a change:
 
-| Task                            | Command                                                                                                                      |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Install                         | `npm ci` (or `npm install` when changing dependencies)                                                                       |
-| Everything CI's verify job runs | `npm run verify` — format check, lint, typecheck, knip, tests with the 80% coverage gate                                     |
-| Build                           | `npm run build`                                                                                                              |
-| End-to-end                      | `npm run e2e` (builds, serves the production bundle on :3100, drives Chromium; needs `npx playwright install chromium` once) |
-| Docker image                    | `docker build -t cocktail .` then run it and hit `/api/health`                                                               |
+| Task                            | Command                                                                                                                         |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Install                         | `pnpm install --frozen-lockfile` (or `pnpm add` / `pnpm update` when changing dependencies)                                     |
+| Everything CI's verify job runs | `pnpm verify` — format check, lint, typecheck, knip, tests with the 80% coverage gate                                           |
+| Build                           | `pnpm build`                                                                                                                    |
+| End-to-end                      | `pnpm e2e` (builds, serves the production bundle on :3100, drives Chromium; needs `pnpm exec playwright install chromium` once) |
+| Docker image                    | `docker build -t cocktail .` then run it and hit `/api/health`                                                                  |
 
 ## Definition of done
 
-- `npm run verify` is green: Prettier clean, ESLint at 0 warnings, `tsc` clean in
+- `pnpm verify` is green: Prettier clean, ESLint at 0 warnings, `tsc` clean in
   every workspace, knip reports nothing, Vitest passes with coverage at or above
   80% in both `server` and `client`.
-- `npm run build` succeeds and `npm run e2e` is green.
+- `pnpm build` succeeds and `pnpm e2e` is green.
 - Every new endpoint has a server test; every new component, form helper, hook
   and util has a unit test; a new user journey gets a Playwright spec in `e2e/`.
 - Wire types change only in `packages/shared`.

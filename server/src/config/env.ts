@@ -6,7 +6,7 @@ import { adminHashProblem } from '../lib/password.js';
  * Importing this module in an invalid environment fails fast and loudly
  * rather than surfacing as a confusing runtime error later.
  */
-/** `scrypt$<N>$<r>$<p>$<salt>$<key>`, as printed by `npm run hash-password`. */
+/** `scrypt$<N>$<r>$<p>$<salt>$<key>`, as printed by `pnpm --filter cocktail-server hash-password`. */
 const PASSWORD_HASH = /^scrypt\$\d+\$\d+\$\d+\$[A-Za-z0-9+/=]+\$[A-Za-z0-9+/=]+$/;
 const ADMIN_VARIABLES = ['ADMIN_USERNAME', 'ADMIN_PASSWORD_HASH'] as const;
 
@@ -29,10 +29,10 @@ const envSchema = z
     ADMIN_USERNAME: z.string().min(1).max(64).optional(),
     ADMIN_PASSWORD_HASH: z
       .string()
-      .regex(PASSWORD_HASH, 'must be a hash from `npm run hash-password`')
+      .regex(PASSWORD_HASH, 'must be a hash from `pnpm --filter cocktail-server hash-password`')
       .optional(),
     /**
-     * Lets production accept a hash cheaper than `npm run hash-password` makes.
+     * Lets production accept a hash cheaper than `pnpm --filter cocktail-server hash-password` makes.
      * Only for the e2e tests, the CI smoke test and the load probe, which run
      * production mode with the public test-only hash. Never on a real server.
      */
