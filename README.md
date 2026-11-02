@@ -22,17 +22,17 @@ _small-screen user narrows the list before scrolling it._
 
 ## Prerequisites
 
-- Node.js ≥ 22 LTS
-- npm ≥ 10
+- Node.js 24 LTS
+- pnpm 12 (`npm install -g pnpm@12.15.0`; the repository refuses npm)
 
 ## Getting Started
 
 ```bash
 # Install all workspace dependencies
-npm install
+pnpm install
 
 # Start dev servers (Express API + Vite React, concurrent)
-npm run dev
+pnpm dev
 ```
 
 - API: http://localhost:3000
@@ -80,19 +80,19 @@ cocktail/
 
 ## Scripts
 
-| Command                 | Description                         |
-| ----------------------- | ----------------------------------- |
-| `npm run dev`           | Start all dev servers concurrently  |
-| `npm run build`         | Build all workspaces                |
-| `npm run test`          | Run all tests                       |
-| `npm run lint`          | Lint all workspaces                 |
-| `npm run typecheck`     | TypeScript check all workspaces     |
-| `npm run format`        | Format with Prettier                |
-| `npm run format:check`  | Verify formatting (CI gate)         |
-| `npm run knip`          | Find unused files, exports, deps    |
-| `npm run test:coverage` | Run tests and enforce 80% coverage  |
-| `npm run verify`        | Everything CI runs, in one command  |
-| `npm run e2e`           | Playwright browser tests (Chromium) |
+| Command              | Description                         |
+| -------------------- | ----------------------------------- |
+| `pnpm dev`           | Start all dev servers concurrently  |
+| `pnpm build`         | Build all workspaces                |
+| `pnpm test`          | Run all tests                       |
+| `pnpm lint`          | Lint all workspaces                 |
+| `pnpm typecheck`     | TypeScript check all workspaces     |
+| `pnpm format`        | Format with Prettier                |
+| `pnpm format:check`  | Verify formatting (CI gate)         |
+| `pnpm knip`          | Find unused files, exports, deps    |
+| `pnpm test:coverage` | Run tests and enforce 80% coverage  |
+| `pnpm verify`        | Everything CI runs, in one command  |
+| `pnpm e2e`           | Playwright browser tests (Chromium) |
 
 ## Architecture notes
 
@@ -112,18 +112,18 @@ Copy `.env.example` to `.env`. Every variable is validated at startup by
 `server/src/config/env.ts`, so a bad value fails the boot rather than surfacing
 later as a confusing runtime error.
 
-| Variable                | Default                    | Purpose                                                                   |
-| ----------------------- | -------------------------- | ------------------------------------------------------------------------- |
-| `PORT`                  | `3000`                     | API port                                                                  |
-| `NODE_ENV`              | `development`              | `development`, `test`, `production`                                       |
-| `CLIENT_ORIGIN`         | `http://localhost:5173`    | The site's own origin: CORS, and every write must come from it            |
-| `DATA_DIR`              | `<cwd>/data-store`         | Where `cocktail.db` is written                                            |
-| `LOG_LEVEL`             | `info`                     | `debug`, `info`, `warn`, `error`                                          |
-| `ADMIN_USERNAME`        | — (required in production) | The one account that may change data                                      |
-| `ADMIN_PASSWORD_HASH`   | — (required in production) | From `npm run hash-password --workspace=server`; keep the single quotes   |
-| `ALLOW_WEAK_ADMIN_HASH` | `false`                    | Tests only: lets production accept the cheap test hash; never on a server |
-| `SESSION_TTL_DAYS`      | `30`                       | How long a login lasts                                                    |
-| `TRUST_PROXY_HOPS`      | `0`                        | Proxies in front of the app; `1` behind Caddy                             |
+| Variable                | Default                    | Purpose                                                                    |
+| ----------------------- | -------------------------- | -------------------------------------------------------------------------- |
+| `PORT`                  | `3000`                     | API port                                                                   |
+| `NODE_ENV`              | `development`              | `development`, `test`, `production`                                        |
+| `CLIENT_ORIGIN`         | `http://localhost:5173`    | The site's own origin: CORS, and every write must come from it             |
+| `DATA_DIR`              | `<cwd>/data-store`         | Where `cocktail.db` is written                                             |
+| `LOG_LEVEL`             | `info`                     | `debug`, `info`, `warn`, `error`                                           |
+| `ADMIN_USERNAME`        | — (required in production) | The one account that may change data                                       |
+| `ADMIN_PASSWORD_HASH`   | — (required in production) | From `pnpm --filter cocktail-server hash-password`; keep the single quotes |
+| `ALLOW_WEAK_ADMIN_HASH` | `false`                    | Tests only: lets production accept the cheap test hash; never on a server  |
+| `SESSION_TTL_DAYS`      | `30`                       | How long a login lasts                                                     |
+| `TRUST_PROXY_HOPS`      | `0`                        | Proxies in front of the app; `1` behind Caddy                              |
 
 ## Docker
 

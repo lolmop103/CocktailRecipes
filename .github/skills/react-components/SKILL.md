@@ -66,6 +66,6 @@ Examples in this codebase:
 
 ## Checks
 
-- `npm run verify` — format, lint, typecheck, knip, tests with coverage
+- `pnpm verify` — format, lint, typecheck, knip, tests with coverage
 - A new pure helper without a unit test is incomplete
 - `knip` fails the build on an unused export, so delete rather than park

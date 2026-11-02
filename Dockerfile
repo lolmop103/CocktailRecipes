@@ -1,41 +1,44 @@
 # ---------------------------------------------------------------------------
-# Stage 1: builder — full install, build every workspace, then prune to prod
+# Stage 1: builder — full install, build every workspace, then deploy the
+# server's production dependencies into a folder of their own
 # ---------------------------------------------------------------------------
-FROM node:22-alpine AS builder
+FROM node:24-alpine AS builder
 
 # Needed to compile the better-sqlite3 native module.
 RUN apk add --no-cache python3 make g++
 
+# Corepack reads `packageManager` from package.json, so the pnpm version is
+# typed in one place only.
+RUN corepack enable
+
 WORKDIR /app
 
 # Manifests first so the install layer caches independently of the sources.
-COPY package.json package-lock.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY server/package.json ./server/
 COPY client/package.json ./client/
 # The shared workspace is copied whole: its `prepare` hook builds it during
 # install, so its sources have to be present already.
 COPY packages/ ./packages/
 
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 
 COPY server/ ./server/
 COPY client/ ./client/
 
-RUN npm run build --workspace=@cocktail/shared
-RUN npm run build --workspace=client
-RUN npm run build --workspace=server
+RUN pnpm --filter @cocktail/shared build
+RUN pnpm --filter cocktail-client build
+RUN pnpm --filter cocktail-server build
 
-# Strip devDependencies in place. This happens here, rather than in a separate
-# production-install stage, because npm re-runs the shared workspace's `prepare`
-# hook on any tree mutation — and `prepare` needs tsc, which only exists while
-# devDependencies are installed. Pruning after the build is the one ordering
-# where that hook can still succeed.
-RUN npm prune --omit=dev
+# The server's production dependencies only (better-sqlite3 already compiled,
+# @cocktail/shared with its built dist), without the dev tools or the other
+# workspaces' dependencies.
+RUN pnpm --filter cocktail-server deploy --prod /deploy
 
 # ---------------------------------------------------------------------------
 # Stage 2: runner — no compiler toolchain, no dev dependencies
 # ---------------------------------------------------------------------------
-FROM node:22-alpine AS runner
+FROM node:24-alpine AS runner
 
 WORKDIR /app
 
@@ -45,13 +48,7 @@ ENV NODE_ENV=production
 # DATA_DIR being passed in.
 ENV DATA_DIR=/data
 
-# npm hoists workspace dependencies to the root, so this single tree is the
-# whole runtime: better-sqlite3 (already compiled in the builder), express,
-# helmet, cors, http-errors and zod, plus the @cocktail/shared symlink.
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
-COPY --from=builder /app/packages/shared/package.json ./packages/shared/
-COPY --from=builder /app/package.json ./
+COPY --from=builder /deploy/node_modules ./server/node_modules
 COPY --from=builder /app/server/package.json ./server/
 COPY --from=builder /app/server/dist ./server/dist
 COPY --from=builder /app/client/dist ./client/dist
