@@ -75,7 +75,12 @@ Errors are collected with the existing ones, so one start attempt lists every pr
 - `docker-compose.yml`: `TRUST_PROXY_HOPS: '0'`.
 - `playwright.config.ts`, `scripts/load-probe.mjs`: add `TRUST_PROXY_HOPS: '0'`.
 - `.github/workflows/ci.yml` smoke test: `-e TRUST_PROXY_HOPS=0 -e CLIENT_ORIGIN=http://localhost:3000`.
-- `.env.example`, `README.md` (variable table), `docs/deploy.md` (the `.env` block and the
+- `.env.example`: the `TRUST_PROXY_HOPS=0` line becomes a commented example, so a `.env`
+  copied from it no longer carries a value into compose (that copy is the trap this
+  package closes). Development still defaults to 0.
+- `.github/workflows/ci.yml` `configs` job: also `export TRUST_PROXY_HOPS=1` next to the
+  admin variables, because `compose.prod.yaml` now requires it.
+- `README.md` (variable table), `docs/deploy.md` (the `.env` block and the
   `TRUST_PROXY_HOPS=1 itself` sentence): state that production requires both. The full
   rewrite of `deploy.md` is out of scope.
 
@@ -98,8 +103,9 @@ rows: none touched.
 - `pnpm verify` and `pnpm e2e` green (e2e proves the playwright change); `docker compose
   -f compose.prod.yaml config` with a `.env` lacking the variable fails with the message,
   and with it set succeeds (checked by running the command, no container started).
-- The CI `configs` job copies `.env.example` to `.env` before `compose config`, so
-  `.env.example` must keep `TRUST_PROXY_HOPS` set (it does: `0`) for that job to pass.
+- The CI `configs` job copies `.env.example` to `.env` before `compose config`; it now
+  exports `TRUST_PROXY_HOPS` itself, and a run of the three `compose config` commands
+  shows `compose.prod.yaml` passes.
 
 ## Out of scope
 
