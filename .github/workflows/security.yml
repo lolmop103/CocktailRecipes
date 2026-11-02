@@ -1,0 +1,92 @@
+# agent-kit ci-block: security/workflow v1
+name: security
+
+on:
+  schedule:
+    - cron: '0 5 * * 1'
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to scan (security/image)'
+        required: false
+        default: latest
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security
+  cancel-in-progress: false
+
+jobs:
+  # agent-kit ci-block: security/audit v1
+  # Scheduled runs audit main; a manual run audits the branch it was started from.
+  # Nothing is installed: pnpm audit reads the lockfile.
+  audit:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event_name == 'schedule' && 'main' || github.ref }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: ./package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: ./package.json
+      - name: Audit production dependencies
+        id: audit
+        run: |
+          set -o pipefail
+          pnpm audit --prod --audit-level high 2>&1 | tee audit.txt
+      - name: Audit result in the run summary
+        if: always()
+        run: |
+          {
+            echo '### pnpm audit --prod --audit-level high'
+            echo '```'
+            cat audit.txt 2>/dev/null || echo 'no report: the audit did not run'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Findings for the report job
+        id: findings
+        if: always()
+        env:
+          OUTCOME: ${{ steps.audit.outcome }}
+        run: |
+          count=$(grep -cE '^│ *(high|critical) *│' audit.txt 2>/dev/null || true)
+          count=${count:-0}
+          if [ "$OUTCOME" != success ] && [ "$count" = 0 ]; then count=1; fi
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          if [ "$count" != 0 ]; then
+            delim=EOF_$(openssl rand -hex 8)
+            {
+              echo "table<<$delim"
+              echo '### pnpm audit --prod --audit-level high'
+              echo '```'
+              if [ -f audit.txt ]; then
+                head -n 150 audit.txt > cut.txt
+                if [ "$(wc -c < cut.txt)" -gt 20000 ]; then head -c 20000 cut.txt | sed '$d'; else cat cut.txt; fi
+              else
+                echo 'no report: the audit did not run'
+              fi
+              echo
+              echo '```'
+              echo "$delim"
+            } >> "$GITHUB_OUTPUT"
+          fi
+  # agent-kit ci-block: security/ok v1
+  # The one result to look at: red when any security job failed or was cancelled.
+  security-ok:
+    if: always()
+    needs: [audit]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every security check passed
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1

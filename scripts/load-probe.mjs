@@ -3,7 +3,7 @@
 // Seeds a throwaway database in-process, starts the production build against
 // it, and measures the rows below. Exits 1 when a gated row misses its budget.
 //
-// Usage: npm run build && npm run probe -- [--recipes 1000] [--gate-flood]
+// Usage: pnpm build && pnpm probe -- [--recipes 1000] [--gate-flood]
 import { spawn } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';

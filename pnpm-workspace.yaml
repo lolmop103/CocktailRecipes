@@ -1,0 +1,20 @@
+packages:
+  - packages/*
+  - server
+  - client
+
+# Supply-chain delay: never resolve a version younger than 3 days (agent-kit, package security).
+minimumReleaseAge: 4320
+trustPolicy: no-downgrade
+
+# Dependency build scripts that may run on install; everything else is skipped.
+allowBuilds:
+  # Compiles the SQLite binding the server loads at runtime.
+  better-sqlite3: true
+  # Postinstall only re-checks a platform binary that arrives as its own package; Vite and tsx run without it.
+  esbuild: false
+
+trustPolicyExclude:
+  # undici-types@6.21.0 (via @types/node 22): 2024 release by maintainer matteo.collina on the
+  # 6.x line that predates provenance, reviewed 2026-10-28. Remove when @types/node moves to 24.
+  - undici-types@6.21.0

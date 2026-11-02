@@ -1,103 +1,173 @@
-name: CI
+# agent-kit ci-block: check/workflow-ci v1
+name: ci
 
 on:
-  push:
-    branches: [main, develop]
   pull_request:
-  workflow_dispatch:
+    branches: [main, develop]
+
+permissions:
+  contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:
-  verify:
-    name: Lint, typecheck, test, build
+  # agent-kit ci-block: check/changes v2
+  changes:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      api: ${{ steps.filter.outputs.api }}
+      configs: ${{ steps.filter.outputs.configs }}
+      docker: ${{ steps.filter.outputs.docker }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          node-version: 22
-          cache: npm
+          persist-credentials: false
+      - id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          filters: |
+            api:
+              - '**'
+            configs:
+              - docker-compose.yml
+              - docker-compose-test.yml
+              - compose.prod.yaml
+              - .github/workflows/**
+            docker:
+              - Dockerfile
+              - .dockerignore
+              - package.json
+              - pnpm-lock.yaml
+              - pnpm-workspace.yaml
+              - packages/**
+              - server/**
+              - client/**
+              - .github/workflows/**
+      - name: Package security baseline
+        shell: bash
+        run: |
+          today=${TODAY:-$(date -u +%F)}
+          limit=$(date -u -d "$today + 30 days" +%F)
+          out=
+          add() { out+="$1"$'\n'; }
+          clean() { sed -e 's/[[:space:]]\{1,\}#.*$//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e "s/^\(['\"]\)\(.*\)\1\$/\2/"; }
+          scalar() { local line; line=$(tr -d '\r' < "$2" | grep -m1 "^$1:" || true); printf '%s' "${line#*:}" | clean; }
+          has_dev_pm() {
+            [ -f "$1" ] || return 1
+            local c rest ch obj='' depth=1 i
+            c=$(tr -d '\r\n' < "$1")
+            [[ $c =~ \"devEngines\"[[:space:]]*:[[:space:]]*\{ ]] || return 1
+            rest=${c#*"${BASH_REMATCH[0]}"}
+            for ((i = 0; i < ${#rest}; i++)); do
+              ch=${rest:i:1}
+              if [ "$ch" = '{' ]; then depth=$((depth + 1)); fi
+              if [ "$ch" = '}' ]; then depth=$((depth - 1)); [ "$depth" -eq 0 ] && break; fi
+              obj+=$ch
+            done
+            [[ $obj =~ \"packageManager\"[[:space:]]*: ]]
+          }
+          is_nested() {
+            local p=$1
+            while [ "$p" != . ]; do
+              if [ -d "$p/.github" ]; then return 0; fi
+              p=$(dirname "$p")
+            done
+            return 1
+          }
+          name_at_version='^(@[a-z0-9._~-]+/)?[a-z0-9._~-]+@[0-9]+(\.[0-9]+)*([-+][0-9A-Za-z._+-]*)?$'
+          checked=0
+          while IFS= read -r file; do
+            dir=${file#./}; dir=${dir%pnpm-workspace.yaml}; dir=${dir%/}; dir=${dir:-.}
+            if is_nested "$dir"; then continue; fi
+            checked=$((checked + 1))
+            age=$(scalar minimumReleaseAge "$file")
+            if ! [[ $age =~ ^[0-9]+$ ]] || [ "$age" -lt 4320 ]; then add "baseline $dir: minimumReleaseAge missing or below 4320"; fi
+            [ "$(scalar trustPolicy "$file")" = no-downgrade ] || add "baseline $dir: trustPolicy not no-downgrade"
+            [ "$(scalar strictDepBuilds "$file")" = false ] && add "baseline $dir: strictDepBuilds turned off"
+            [ "$(scalar blockExoticSubdeps "$file")" = false ] && add "baseline $dir: blockExoticSubdeps turned off"
+            [ "$(scalar dangerouslyAllowAllBuilds "$file")" = true ] && add "baseline $dir: dangerouslyAllowAllBuilds on"
+            in_list=0
+            while IFS= read -r line; do
+              if [[ $line =~ ^(minimumReleaseAgeExclude|trustPolicyExclude):[[:space:]]*(#.*)?$ ]]; then in_list=1
+              elif [[ $line =~ ^[[:space:]]*(#.*)?$ ]]; then :
+              elif [ "$in_list" = 1 ] && [[ $line =~ ^[[:space:]]*-[[:space:]]+(.*)$ ]]; then
+                entry=$(printf '%s' "${BASH_REMATCH[1]}" | clean)
+                [[ $entry =~ $name_at_version ]] || add "baseline $dir: exclude entry not name@version: $entry"
+              else in_list=0
+              fi
+            done < <(tr -d '\r' < "$file")
+            has_dev_pm "${file%pnpm-workspace.yaml}package.json" || add "baseline $dir: devEngines.packageManager missing"
+          done < <(find . \( -name node_modules -o -name .git \) -prune -o -name pnpm-workspace.yaml -print | sort)
+          locked=0
+          while IFS= read -r file; do
+            dir=${file#./}; dir=${dir%pnpm-lock.yaml}; dir=${dir%/}; dir=${dir:-.}
+            if is_nested "$dir"; then continue; fi
+            locked=$((locked + 1))
+            [ -f "$dir/pnpm-workspace.yaml" ] || add "baseline $dir: pnpm-workspace.yaml missing"
+          done < <(find . \( -name node_modules -o -name .git \) -prune -o -name pnpm-lock.yaml -print | sort)
+          if [ $((checked + locked)) -gt 0 ] && ! grep -qsF 'ci-block: security/audit v' .github/workflows/security.yml; then
+            add "baseline .: security.yml missing or without security/audit"
+          fi
+          if [ -f .trivyignore ]; then
+            while IFS= read -r line; do
+              [[ $line =~ ^[[:space:]]*(#.*)?$ ]] && continue
+              read -r id _ <<< "$line"
+              if [[ $line =~ (^|[[:space:]])exp:([0-9]{4}-[0-9]{2}-[0-9]{2})([[:space:]]|$) ]]; then
+                exp=${BASH_REMATCH[2]}
+                if [[ $exp < $today ]]; then add "trivyignore $id: exp past"
+                elif [[ $exp > $limit ]]; then add "trivyignore $id: exp more than 30 days ahead"
+                fi
+              else
+                add "trivyignore $id: no exp"
+              fi
+            done < <(tr -d '\r' < .trivyignore)
+          fi
+          if [ -n "$out" ]; then
+            printf '%s' "$out" | LC_ALL=C sort -u
+            exit 1
+          fi
 
-      - name: Install dependencies
-        run: npm ci
+  test:
+    needs: changes
+    uses: ./.github/workflows/test.yml
+    with:
+      api: ${{ needs.changes.outputs.api == 'true' }}
 
-      - name: Check formatting
-        run: npm run format:check
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Unused files, exports and dependencies
-        run: npm run knip
-
-      - name: Test (enforces coverage thresholds)
-        run: npm run test:coverage
-
-      - name: Build
-        run: npm run build
-
-  e2e:
-    name: End-to-end (Playwright)
+  # agent-kit ci-block: check/compose v1
+  configs:
+    needs: changes
+    if: needs.changes.outputs.configs == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: verify
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Compose files parse
+        run: |
+          cp .env.example .env
+          export ADMIN_USERNAME=ci ADMIN_PASSWORD_HASH=ci
+          docker compose -f docker-compose.yml config -q
+          docker compose -f docker-compose-test.yml config -q
+          docker compose -f compose.prod.yaml config -q
+      # project: begin
+      # project: end
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-
-      # Builds the production bundle and serves it from Express, the same
-      # shape as the Docker image, then drives it in a real browser.
-      - name: Run browser tests
-        run: npm run e2e
-
-      - name: Upload report on failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 7
-
+  # Project job (not from a block): the production image builds and answers.
   docker:
-    name: Docker image builds
+    needs: changes
+    if: needs.changes.outputs.docker == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: verify
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # Plain `docker build` on the runner's preinstalled Docker: no action
       # inputs, no Buildx driver to configure, no remote cache backend. This
       # exact command is what the image is verified with locally.
       - name: Build image
         run: docker build --progress=plain -t cocktail:ci .
-
       - name: Smoke-test the container
         run: |
           # Production refuses to start without admin credentials; these are the
@@ -108,7 +178,7 @@ jobs:
             -e ADMIN_USERNAME=admin \
             -e 'ADMIN_PASSWORD_HASH=scrypt$1024$8$1$Y29ja3RhaWwtdGVzdC1zYWx0$SrCe7cQgqgEmwhEu4/R56wDLexjTLseaW2nJIWA78e0qu6feX2AcMaLgvRY6NqW4Mi2PMw9HRvKPTN9lYuaIQA==' \
             cocktail:ci
-          for i in $(seq 1 30); do
+          for _ in $(seq 1 30); do
             if curl -fsS http://localhost:3000/api/health; then
               echo "container is healthy"
               curl -fsS http://localhost:3000/api/recipes > /dev/null
@@ -120,3 +190,15 @@ jobs:
           echo "::error::server did not become healthy in time"
           docker logs cocktail
           exit 1
+
+  # agent-kit ci-block: check/ci-ok v1
+  # The one result to look at: green when every check passed or was skipped. Skipped
+  # itself on a run a newer push cancelled, so superseded runs cost nothing more.
+  ci-ok:
+    if: ${{ !cancelled() }}
+    needs: [changes, test, configs, docker]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every check passed or was skipped
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
