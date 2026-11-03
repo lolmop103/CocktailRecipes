@@ -35,10 +35,12 @@
 ### Task 1: Production checks in env.ts
 
 **Files:**
+
 - Modify: `server/src/config/env.ts` (the `superRefine`, lines 47-63)
 - Test: `server/tests/env.test.ts`, `server/tests/production.test.ts`
 
 **Interfaces:**
+
 - Consumes: the existing `envSchema`, `loadEnv()` test helper, `process.env`.
 - Produces: no new exports. `env.TRUST_PROXY_HOPS` and `env.CLIENT_ORIGIN` keep their types; in production they are now always explicit.
 
@@ -85,9 +87,11 @@ git commit -m "feat(server): require proxy hops and an https origin in productio
 ### Task 2: Give every production-mode caller its values
 
 **Files:**
+
 - Modify: `compose.prod.yaml:24`, `docker-compose.yml` (environment block), `playwright.config.ts:33-35`, `scripts/load-probe.mjs:80-84`, `.github/workflows/ci.yml` (`configs` job and the smoke-test `docker run`), `.env.example:25-26`, `README.md:119,126`, `docs/deploy.md:18-20,63,69-70`
 
 **Interfaces:**
+
 - Consumes: Task 1's rule that production needs both variables.
 - Produces: nothing code-level; later packages (WP6, WP7) rely on `compose.prod.yaml` failing without `TRUST_PROXY_HOPS`.
 
@@ -105,10 +109,12 @@ git commit -m "feat(server): require proxy hops and an https origin in productio
 - [ ] **Step 3: Verify the compose files**
 
 Run, from the repo root with no container started:
+
 ```bash
 cp .env.example ../env-check.tmp   # scratch copy outside the repo, not the real .env
 docker compose --env-file ../env-check.tmp -f compose.prod.yaml config -q   # delete the copy afterwards
 ```
+
 Expected: fails with `set TRUST_PROXY_HOPS in .env`.
 Then `TRUST_PROXY_HOPS=1 ADMIN_USERNAME=ci ADMIN_PASSWORD_HASH=ci` in front of the same command, and of `docker-compose.yml` and `docker-compose-test.yml` `config -q`: all succeed. This is the Review Focus case for a copied `.env.example`.
 

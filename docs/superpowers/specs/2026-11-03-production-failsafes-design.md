@@ -32,14 +32,14 @@ This is work package 1 of the go-public hardening audit of 2026-11-02 (handoff:
 
 ## Decisions (locked)
 
-| Decision                                                                 | Rationale                                                                                                                                                  |
-| ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `TRUST_PROXY_HOPS` is required in production; `0` is valid when explicit | The right count depends on the topology (0 local, 1 behind Caddy, 2 behind Cloudflare and Caddy) and cannot be guessed. The local `docker-compose.yml` has no proxy. |
-| `CLIENT_ORIGIN` is required in production, no localhost default           | A wrong default only shows up as unexplained 403s on every admin write.                                                                                   |
+| Decision                                                                                              | Rationale                                                                                                                                                                               |
+| ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `TRUST_PROXY_HOPS` is required in production; `0` is valid when explicit                              | The right count depends on the topology (0 local, 1 behind Caddy, 2 behind Cloudflare and Caddy) and cannot be guessed. The local `docker-compose.yml` has no proxy.                    |
+| `CLIENT_ORIGIN` is required in production, no localhost default                                       | A wrong default only shows up as unexplained 403s on every admin write.                                                                                                                 |
 | Production `CLIENT_ORIGIN` must be `https://`, unless the host is `localhost`, `127.0.0.1` or `[::1]` | The session cookie is `Secure` and `__Host-` in production, so a public `http://` origin cannot work. Loopback `http://` keeps the local stack, e2e and probe usable without local TLS. |
-| Presence is checked on the raw `process.env`, not on the defaulted value  | The schema applies defaults before `superRefine` runs, so the parsed value cannot tell "unset" from "default".                                              |
-| `compose.prod.yaml` loses the `:-1` fallback                              | `${TRUST_PROXY_HOPS:?…}` makes `compose config` fail on a server `.env` that lacks it, before the container starts.                                       |
-| Defaults stay in development and test                                     | Local work and the test suite must not need proxy settings.                                                                                                |
+| Presence is checked on the raw `process.env`, not on the defaulted value                              | The schema applies defaults before `superRefine` runs, so the parsed value cannot tell "unset" from "default".                                                                          |
+| `compose.prod.yaml` loses the `:-1` fallback                                                          | `${TRUST_PROXY_HOPS:?…}` makes `compose config` fail on a server `.env` that lacks it, before the container starts.                                                                     |
+| Defaults stay in development and test                                                                 | Local work and the test suite must not need proxy settings.                                                                                                                             |
 
 ## Starting point
 
@@ -57,14 +57,14 @@ This is work package 1 of the go-public hardening audit of 2026-11-02 (handoff:
 
 In production (`NODE_ENV=production`):
 
-| Input                                         | Result                                                       |
-| --------------------------------------------- | ------------------------------------------------------------ |
+| Input                                         | Result                                                                                                           |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | `TRUST_PROXY_HOPS` unset                      | Startup error: `TRUST_PROXY_HOPS: is required in production (0 = no proxy, 1 = Caddy, 2 = Cloudflare and Caddy)` |
-| `TRUST_PROXY_HOPS=0`                          | Accepted                                                     |
-| `CLIENT_ORIGIN` unset                         | Startup error: `CLIENT_ORIGIN: is required in production`    |
-| `CLIENT_ORIGIN=http://cocktails.example.com`  | Startup error: `CLIENT_ORIGIN: must be https:// in production (http:// is allowed only for localhost)` |
-| `CLIENT_ORIGIN=http://localhost:3009`         | Accepted (also `127.0.0.1`, `[::1]`)                         |
-| `CLIENT_ORIGIN=https://cocktails.example.com` | Accepted                                                     |
+| `TRUST_PROXY_HOPS=0`                          | Accepted                                                                                                         |
+| `CLIENT_ORIGIN` unset                         | Startup error: `CLIENT_ORIGIN: is required in production`                                                        |
+| `CLIENT_ORIGIN=http://cocktails.example.com`  | Startup error: `CLIENT_ORIGIN: must be https:// in production (http:// is allowed only for localhost)`           |
+| `CLIENT_ORIGIN=http://localhost:3009`         | Accepted (also `127.0.0.1`, `[::1]`)                                                                             |
+| `CLIENT_ORIGIN=https://cocktails.example.com` | Accepted                                                                                                         |
 
 Errors are collected with the existing ones, so one start attempt lists every problem.
 
@@ -101,7 +101,7 @@ rows: none touched.
   `env_productionWithAdmin_ok` gains the two variables.
 - `server/tests/production.test.ts` gets the hop count it now needs.
 - `pnpm verify` and `pnpm e2e` green (e2e proves the playwright change); `docker compose
-  -f compose.prod.yaml config` with a `.env` lacking the variable fails with the message,
+-f compose.prod.yaml config` with a `.env` lacking the variable fails with the message,
   and with it set succeeds (checked by running the command, no container started).
 - The CI `configs` job copies `.env.example` to `.env` before `compose config`; it now
   exports `TRUST_PROXY_HOPS` itself, and a run of the three `compose config` commands
