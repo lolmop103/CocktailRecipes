@@ -148,7 +148,7 @@ jobs:
       - name: Compose files parse
         run: |
           cp .env.example .env
-          export ADMIN_USERNAME=ci ADMIN_PASSWORD_HASH=ci
+          export ADMIN_USERNAME=ci ADMIN_PASSWORD_HASH=ci TRUST_PROXY_HOPS=1
           docker compose -f docker-compose.yml config -q
           docker compose -f docker-compose-test.yml config -q
           docker compose -f compose.prod.yaml config -q
@@ -175,6 +175,8 @@ jobs:
           # accepts only with ALLOW_WEAK_ADMIN_HASH.
           docker run -d --name cocktail -p 3000:3000 \
             -e ALLOW_WEAK_ADMIN_HASH=true \
+            -e TRUST_PROXY_HOPS=0 \
+            -e CLIENT_ORIGIN=http://localhost:3000 \
             -e ADMIN_USERNAME=admin \
             -e 'ADMIN_PASSWORD_HASH=scrypt$1024$8$1$Y29ja3RhaWwtdGVzdC1zYWx0$SrCe7cQgqgEmwhEu4/R56wDLexjTLseaW2nJIWA78e0qu6feX2AcMaLgvRY6NqW4Mi2PMw9HRvKPTN9lYuaIQA==' \
             cocktail:ci

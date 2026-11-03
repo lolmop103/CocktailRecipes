@@ -112,18 +112,18 @@ Copy `.env.example` to `.env`. Every variable is validated at startup by
 `server/src/config/env.ts`, so a bad value fails the boot rather than surfacing
 later as a confusing runtime error.
 
-| Variable                | Default                    | Purpose                                                                    |
-| ----------------------- | -------------------------- | -------------------------------------------------------------------------- |
-| `PORT`                  | `3000`                     | API port                                                                   |
-| `NODE_ENV`              | `development`              | `development`, `test`, `production`                                        |
-| `CLIENT_ORIGIN`         | `http://localhost:5173`    | The site's own origin: CORS, and every write must come from it             |
-| `DATA_DIR`              | `<cwd>/data-store`         | Where `cocktail.db` is written                                             |
-| `LOG_LEVEL`             | `info`                     | `debug`, `info`, `warn`, `error`                                           |
-| `ADMIN_USERNAME`        | — (required in production) | The one account that may change data                                       |
-| `ADMIN_PASSWORD_HASH`   | — (required in production) | From `pnpm --filter cocktail-server hash-password`; keep the single quotes |
-| `ALLOW_WEAK_ADMIN_HASH` | `false`                    | Tests only: lets production accept the cheap test hash; never on a server  |
-| `SESSION_TTL_DAYS`      | `30`                       | How long a login lasts                                                     |
-| `TRUST_PROXY_HOPS`      | `0`                        | Proxies in front of the app; `1` behind Caddy                              |
+| Variable                | Default                    | Purpose                                                                      |
+| ----------------------- | -------------------------- | ---------------------------------------------------------------------------- |
+| `PORT`                  | `3000`                     | API port                                                                     |
+| `NODE_ENV`              | `development`              | `development`, `test`, `production`                                          |
+| `CLIENT_ORIGIN`         | — (required in production) | Site's own origin (CORS, writes); `https://` outside localhost; dev: `:5173` |
+| `DATA_DIR`              | `<cwd>/data-store`         | Where `cocktail.db` is written                                               |
+| `LOG_LEVEL`             | `info`                     | `debug`, `info`, `warn`, `error`                                             |
+| `ADMIN_USERNAME`        | — (required in production) | The one account that may change data                                         |
+| `ADMIN_PASSWORD_HASH`   | — (required in production) | From `pnpm --filter cocktail-server hash-password`; keep the single quotes   |
+| `ALLOW_WEAK_ADMIN_HASH` | `false`                    | Tests only: lets production accept the cheap test hash; never on a server    |
+| `SESSION_TTL_DAYS`      | `30`                       | How long a login lasts                                                       |
+| `TRUST_PROXY_HOPS`      | — (required in production) | Proxies in front of the app; `0` locally, `1` behind Caddy, `2` Cloudflare   |
 
 ## Docker
 
@@ -153,8 +153,9 @@ docker compose -f ../BinMark/infra/edge/compose.local.yml up -d   # the edge, fi
 docker compose -f docker-compose-test.yml up -d --build
 ```
 
-It needs `ADMIN_USERNAME` and `ADMIN_PASSWORD_HASH` in `.env`, and `LAN_HOST`: this
-PC's IPv4 address (`ipconfig`), the same value as in the edge's `.env`.
+It needs `ADMIN_USERNAME` and `ADMIN_PASSWORD_HASH` in `.env`, `TRUST_PROXY_HOPS=1`,
+and `LAN_HOST`: this PC's IPv4 address (`ipconfig`), the same value as in the
+edge's `.env`.
 
 | Address                   | Browse | Log in and edit |
 | ------------------------- | ------ | --------------- |

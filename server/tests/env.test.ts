@@ -61,6 +61,8 @@ describe('env — admin and session settings', () => {
 
   it('env_productionWithAdmin_ok', async () => {
     vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('TRUST_PROXY_HOPS', '1');
+    vi.stubEnv('CLIENT_ORIGIN', 'https://cocktails.example.com');
     vi.stubEnv('ADMIN_PASSWORD_HASH', await hashPassword('a-real-password'));
 
     const { env } = await loadEnv();
@@ -121,6 +123,8 @@ describe('env — admin hash strength', () => {
 
   it('env_productionWithTestHashAndAllowWeak_ok', async () => {
     vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('TRUST_PROXY_HOPS', '1');
+    vi.stubEnv('CLIENT_ORIGIN', 'https://cocktails.example.com');
     vi.stubEnv('ALLOW_WEAK_ADMIN_HASH', 'true');
 
     const { env } = await loadEnv();
@@ -166,5 +170,103 @@ describe('env — CLIENT_ORIGIN', () => {
     vi.stubEnv('CLIENT_ORIGIN', 'https://cocktails.example.com/app');
 
     await expect(loadEnv()).rejects.toThrow(/CLIENT_ORIGIN/);
+  });
+});
+
+describe('env — production proxy settings', () => {
+  const HOPS_MESSAGE =
+    /TRUST_PROXY_HOPS: is required in production \(0 = no proxy, 1 = Caddy, 2 = Cloudflare and Caddy\)/;
+  const HTTPS_MESSAGE =
+    /CLIENT_ORIGIN: must be https:\/\/ in production \(http:\/\/ is allowed only for localhost\)/;
+
+  function production(hops: string | undefined, origin: string | undefined) {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('ALLOW_WEAK_ADMIN_HASH', 'true');
+    vi.stubEnv('TRUST_PROXY_HOPS', hops);
+    vi.stubEnv('CLIENT_ORIGIN', origin);
+  }
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('env_productionWithoutTrustProxyHops_failsNamingTheVariable', async () => {
+    production(undefined, 'https://cocktails.example.com');
+
+    await expect(loadEnv()).rejects.toThrow(HOPS_MESSAGE);
+  });
+
+  it('env_productionWithEmptyTrustProxyHops_failsAsUnset', async () => {
+    production('', 'https://cocktails.example.com');
+
+    await expect(loadEnv()).rejects.toThrow(HOPS_MESSAGE);
+  });
+
+  it('env_productionWithoutClientOrigin_failsNamingTheVariable', async () => {
+    production('1', undefined);
+
+    await expect(loadEnv()).rejects.toThrow(/CLIENT_ORIGIN: is required in production/);
+  });
+
+  it('env_productionWithEmptyClientOrigin_failsAsUnset', async () => {
+    production('1', '');
+
+    await expect(loadEnv()).rejects.toThrow(/CLIENT_ORIGIN: is required in production/);
+  });
+
+  it('env_productionWithNeither_listsBothInOneError', async () => {
+    production(undefined, undefined);
+
+    await expect(loadEnv()).rejects.toThrow(/TRUST_PROXY_HOPS[\s\S]*CLIENT_ORIGIN/);
+  });
+
+  it('env_productionWithPublicHttpOrigin_fails', async () => {
+    production('1', 'http://cocktails.example.com');
+
+    await expect(loadEnv()).rejects.toThrow(HTTPS_MESSAGE);
+  });
+
+  it.each([
+    'http://localhost.evil.com',
+    'http://127.0.0.1.example.com',
+    'http://localhost@evil.com',
+    'file:///',
+    'ws://localhost:3009',
+  ])('env_productionWithLookAlikeLocalhost_fails (%s)', async (origin) => {
+    production('1', origin);
+
+    await expect(loadEnv()).rejects.toThrow(HTTPS_MESSAGE);
+  });
+
+  it.each([
+    'http://localhost:3009',
+    'http://127.0.0.1:3100',
+    'http://[::1]:3009',
+    'http://LOCALHOST:3009',
+  ])('env_productionWithLoopbackHttpOrigin_ok (%s)', async (origin) => {
+    production('0', origin);
+
+    const { env } = await loadEnv();
+
+    expect(env.CLIENT_ORIGIN).toBe(origin.toLowerCase());
+  });
+
+  it('env_productionWithHttpsOriginAndExplicitZeroHops_ok', async () => {
+    production('0', 'https://cocktails.example.com');
+
+    const { env } = await loadEnv();
+
+    expect(env.TRUST_PROXY_HOPS).toBe(0);
+  });
+
+  it('env_developmentWithoutProxySettings_keepsDefaults', async () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('TRUST_PROXY_HOPS', undefined);
+    vi.stubEnv('CLIENT_ORIGIN', undefined);
+
+    const { env } = await loadEnv();
+
+    expect(env.TRUST_PROXY_HOPS).toBe(0);
+    expect(env.CLIENT_ORIGIN).toBe('http://localhost:5173');
   });
 });

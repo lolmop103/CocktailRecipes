@@ -82,6 +82,7 @@ const serverEnv = {
   DATA_DIR: dataDir,
   LOG_LEVEL: 'error',
   CLIENT_ORIGIN: `http://localhost:${String(PORT)}`,
+  TRUST_PROXY_HOPS: '0',
   // Test-only credentials (cheap hash of 'test-admin-password'): production
   // refuses to start without an admin, and refuses a hash this cheap unless
   // told it is a test.

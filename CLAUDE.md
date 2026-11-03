@@ -94,7 +94,13 @@ revisit it:
 
 None.
 
-## Current status & next steps (updated 2026-10-30)
+## Current status & next steps (updated 2026-11-03)
+
+Since 2026-11-03 a production server refuses to start without an explicit
+`TRUST_PROXY_HOPS` (0 = no proxy, 1 = Caddy, 2 = Cloudflare and Caddy) and
+`CLIENT_ORIGIN`, which must be `https://` except for localhost. `compose.prod.yaml`
+and the test stack (`docker-compose-test.yml`) need `TRUST_PROXY_HOPS` in `.env`.
+This is work package 1 of the go-public hardening audit of 2026-11-02.
 
 On 2026-10-30 the project moved from npm to pnpm 12 (Node 24, `engines.node`
 `>=24 <25`) with a 3-day release age and `trustPolicy: no-downgrade` in

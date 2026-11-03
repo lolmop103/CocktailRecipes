@@ -19,10 +19,11 @@ const envSchema = z
     CLIENT_ORIGIN: z
       .url()
       .refine((value) => {
+        if (!URL.canParse(value)) return true; // .url() reports it
         const url = new URL(value);
         return url.pathname === '/' && url.search === '' && url.hash === '';
       }, 'must be an origin such as https://cocktails.example.com, without a path')
-      .transform((value) => new URL(value).origin)
+      .transform((value) => (URL.canParse(value) ? new URL(value).origin : value))
       .default('http://localhost:5173'),
     DATA_DIR: z.string().min(1).optional(),
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
@@ -55,6 +56,36 @@ const envSchema = z
 
     // A production server must never start with editing open to everyone.
     if (value.NODE_ENV !== 'production') return;
+
+    // Defaults hide absence, so presence is read from the raw environment;
+    // compose passes an unset ${VAR} through as an empty string.
+    const unset = (name: string) => (process.env[name] ?? '') === '';
+    if (unset('TRUST_PROXY_HOPS')) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['TRUST_PROXY_HOPS'],
+        message: 'is required in production (0 = no proxy, 1 = Caddy, 2 = Cloudflare and Caddy)',
+      });
+    }
+    if (unset('CLIENT_ORIGIN')) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['CLIENT_ORIGIN'],
+        message: 'is required in production',
+      });
+    } else {
+      // A scheme such as file: reduces to the opaque origin "null", which cannot parse.
+      const url = URL.canParse(value.CLIENT_ORIGIN) ? new URL(value.CLIENT_ORIGIN) : undefined;
+      const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(url?.hostname ?? '');
+      const allowed = url?.protocol === 'https:' || (url?.protocol === 'http:' && loopback);
+      if (!allowed) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['CLIENT_ORIGIN'],
+          message: 'must be https:// in production (http:// is allowed only for localhost)',
+        });
+      }
+    }
     for (const name of ADMIN_VARIABLES) {
       if (value[name] === undefined) {
         ctx.addIssue({ code: 'custom', path: [name], message: 'is required in production' });

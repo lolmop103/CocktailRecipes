@@ -16,7 +16,7 @@ visitor ──HTTPS──▶ Caddy ──http://cocktail:3000──▶ app conta
   with `docker network ls`.
 - A DNS name for the site pointing at the VPS (below: `cocktails.example.com`).
 - Nothing in front of Caddy: visitors connect to Caddy directly. If you put a CDN
-  such as Cloudflare in front of it, set `TRUST_PROXY_HOPS=2` in `.env` —
+  such as Cloudflare in front of it, set `TRUST_PROXY_HOPS=2` in `.env` instead of 1 —
   otherwise every visitor shares one rate-limit bucket (the CDN's address).
 - Node 22+ on the machine where you create the password hash (your laptop is
   fine — the hash is what goes to the server, never the password).
@@ -52,6 +52,7 @@ In the repository checkout on the VPS (never committed):
 ```bash
 NODE_ENV=production
 CLIENT_ORIGIN=https://cocktails.example.com
+TRUST_PROXY_HOPS=1   # 2 if Cloudflare sits in front of Caddy
 ADMIN_USERNAME=your-name
 ADMIN_PASSWORD_HASH='scrypt$32768$8$1$…$…'
 LOG_LEVEL=info
@@ -61,13 +62,14 @@ CADDY_NETWORK=caddy
 ```
 
 - `CLIENT_ORIGIN` must be the public `https://` address exactly as visitors type
-  it, without a path. Every change to data is refused (403) unless the browser
+  it, without a path, and must be `https://`. Every change to data is refused (403) unless the browser
   says it comes from this origin.
 - The server refuses to start without `ADMIN_USERNAME` and `ADMIN_PASSWORD_HASH`,
   and refuses a hash it cannot verify or one cheaper than `hash-password`
   makes — such as the public test-only hash in this repository.
-- `compose.prod.yaml` sets `NODE_ENV`, `PORT`, `DATA_DIR` and
-  `TRUST_PROXY_HOPS=1` itself; you do not need them in `.env`.
+- `compose.prod.yaml` sets `NODE_ENV`, `PORT` and `DATA_DIR` itself; you do not
+  need them in `.env`. It no longer sets `TRUST_PROXY_HOPS`: it refuses to start
+  until you set it in `.env`.
 - Changing the password (a new hash and a restart) ends every open session.
 
 ## 3. Add the site to your Caddyfile

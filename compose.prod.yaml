@@ -18,10 +18,10 @@ services:
       NODE_ENV: production
       PORT: '3000'
       DATA_DIR: /data
-      # Proxies in front of the app. 1 = Caddy alone, receiving visitors
-      # directly. Put a CDN (e.g. Cloudflare) in front of Caddy and this must
-      # become 2 — see docs/deploy.md.
-      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-1}
+      # Proxies in front of the app. No default: set it in .env. 1 = Caddy
+      # alone, receiving visitors directly; 2 = a CDN (e.g. Cloudflare) in
+      # front of Caddy. See docs/deploy.md.
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:?set TRUST_PROXY_HOPS in .env (1 behind Caddy, 2 behind Cloudflare and Caddy)}
     volumes:
       - cocktail-db:/data
     networks:

@@ -33,6 +33,7 @@ export default defineConfig({
       NODE_ENV: 'production',
       PORT: String(PORT),
       CLIENT_ORIGIN: BASE_URL,
+      TRUST_PROXY_HOPS: '0',
       DATA_DIR: join(tmpdir(), `cocktail-e2e-${String(process.pid)}`),
       LOG_LEVEL: 'warn',
       // Test-only credentials (cheap hash of 'test-admin-password', public in this
