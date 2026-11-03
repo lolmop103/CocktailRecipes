@@ -1,4 +1,4 @@
-import { mkdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import Database from 'better-sqlite3';
 
@@ -25,12 +25,10 @@ export async function snapshotDatabase(
   verify: (file: string) => void = verifyIntegrity,
 ): Promise<string> {
   const source = join(dataDir, 'cocktail.db');
-  let db: Database.Database;
-  try {
-    db = new Database(source, { readonly: true, fileMustExist: true });
-  } catch {
-    throw new Error(`database not found: ${source}`);
-  }
+  if (!existsSync(source)) throw new Error(`database not found: ${source}`);
+  // Any other open failure (permissions, a file that is not a database) keeps
+  // SQLite's own message.
+  const db = new Database(source, { readonly: true, fileMustExist: true });
   const target = join(dataDir, 'snapshots', 'cocktail.db');
   try {
     mkdirSync(join(dataDir, 'snapshots'), { recursive: true });

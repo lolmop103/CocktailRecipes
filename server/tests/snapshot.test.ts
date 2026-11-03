@@ -6,6 +6,7 @@ import {
   readFileSync,
   rmSync,
   writeSync,
+  writeFileSync,
   closeSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -73,6 +74,14 @@ describe('snapshotDatabase', () => {
 
     expect(existsSync(join(dir, 'cocktail.db'))).toBe(false);
     expect(existsSync(join(dir, 'snapshots'))).toBe(false);
+  });
+
+  it('snapshotDatabase_fileThatIsNotADatabase_rejectsWithoutClaimingItIsMissing', async () => {
+    writeFileSync(join(dir, 'cocktail.db'), 'this is not a database'.repeat(100));
+
+    await expect(snapshotDatabase(dir)).rejects.toThrow(Error);
+    await expect(snapshotDatabase(dir)).rejects.not.toThrow('database not found');
+    expect(existsSync(join(dir, 'snapshots', 'cocktail.db'))).toBe(false);
   });
 
   it('snapshotDatabase_earlierSnapshot_replacesIt', async () => {
