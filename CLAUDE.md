@@ -102,6 +102,11 @@ Since 2026-11-03 a production server refuses to start without an explicit
 and the test stack (`docker-compose-test.yml`) need `TRUST_PROXY_HOPS` in `.env`.
 This is work package 1 of the go-public hardening audit of 2026-11-02.
 
+Since 2026-11-03 the Content-Security-Policy allows only `'self'` (images also
+`data:`), the Inter font and its Google links are gone, and
+`client/public/robots.txt` disallows `/api/`. This is work package 2 of the
+go-public audit.
+
 On 2026-10-30 the project moved from npm to pnpm 12 (Node 24, `engines.node`
 `>=24 <25`) with a 3-day release age and `trustPolicy: no-downgrade` in
 `pnpm-workspace.yaml`, CI rebuilt from agent-kit's blocks (`ci.yml`, `test.yml`
