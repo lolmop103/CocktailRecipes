@@ -94,7 +94,14 @@ revisit it:
 
 None.
 
-## Current status & next steps (updated 2026-11-03)
+## Current status & next steps (updated 2026-11-04)
+
+On 2026-11-04 the backup design was written
+(`docs/superpowers/specs/2026-11-04-backups-design.md`, work package 5 of the
+go-public audit): a nightly `age`-encrypted archive of this SQLite database and
+BinMark's data in a Cloudflare R2 bucket, bucket locks so a stolen server key
+cannot delete backups, 7 daily, 4 weekly and 12 monthly copies, healthchecks.io
+alerts. No plan or code yet; the host part waits for the server baseline.
 
 Since 2026-11-03 a production server refuses to start without an explicit
 `TRUST_PROXY_HOPS` (0 = no proxy, 1 = Caddy, 2 = Cloudflare and Caddy) and
@@ -184,6 +191,8 @@ containers at once).
 
 ## Not yet set up (intentional)
 
-More than one user, sign-up, password reset, 2FA, database backups, monitoring,
-and protection against floods from many IP addresses (that belongs in front of
-the app). Don't add these unless asked.
+More than one user, sign-up, password reset, 2FA, monitoring, and protection
+against floods from many IP addresses (that belongs in front of the app). Don't add
+these unless asked. Database backups are specified
+(`docs/superpowers/specs/2026-11-04-backups-design.md`) and come with that spec's
+plan; until the restore drill has passed there is no automated backup.

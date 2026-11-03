@@ -117,7 +117,10 @@ accessibility — are in `AGENT.md`. Component structure has its own skill in
 
 ## Not set up on purpose
 
-More than one user, sign-up, password reset, 2FA, database backups, monitoring,
-and flood protection in front of the app. The single-owner admin login and the
-deployment behind Caddy exist (`docs/deploy.md`). Each further piece arrives
+More than one user, sign-up, password reset, 2FA, monitoring, and flood
+protection in front of the app. The single-owner admin login and the deployment
+behind Caddy exist (`docs/deploy.md`). Database backups are specified in
+`docs/superpowers/specs/2026-11-04-backups-design.md` (an encrypted nightly copy
+off the server) and arrive through that spec's plan; until it is merged and
+the drill has passed there is no automated backup. Each further piece arrives
 through its own spec and plan; do not add it unless asked.
