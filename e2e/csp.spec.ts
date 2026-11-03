@@ -54,5 +54,11 @@ test('robots.txt is plain text that keeps crawlers off the API', async ({ page }
   const res = await page.request.get('/robots.txt');
   expect(res.status()).toBe(200);
   expect(res.headers()['content-type']).toMatch(/^text\/plain/);
-  expect(await res.text()).toContain('Disallow: /api/');
+  expect(await res.text()).toBe('User-agent: *\nDisallow: /api/\n');
+});
+
+test('the served page HTML names no other host', async ({ page }) => {
+  const res = await page.request.get('/');
+  expect(res.status()).toBe(200);
+  expect(await res.text()).not.toMatch(/https?:\/\//);
 });

@@ -110,7 +110,7 @@ describe('production boot', () => {
     const res = await request(app).get('/');
     const csp = parseCsp(res.headers['content-security-policy'] as string);
 
-    expect(csp).toMatchObject({
+    expect(csp).toEqual({
       'default-src': ["'self'"],
       'script-src': ["'self'"],
       'style-src': ["'self'"],
@@ -121,9 +121,8 @@ describe('production boot', () => {
       'form-action': ["'self'"],
       'frame-ancestors': ["'self'"],
       'script-src-attr': ["'none'"],
+      'upgrade-insecure-requests': [],
     });
-    expect(csp).toHaveProperty('upgrade-insecure-requests');
-    expect(csp['upgrade-insecure-requests']).toEqual([]);
   });
 
   it('csp_noValueLoosens', async () => {

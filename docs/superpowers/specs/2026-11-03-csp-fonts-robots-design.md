@@ -18,8 +18,7 @@ and the browser must refuse anything else.
   it silently.
 - `/robots.txt` falls through to the SPA fallback and answers with `index.html` and a 200.
 
-This is work package 2 of the go-public hardening audit of 2026-11-02 (handoff:
-`tasks/handoff/CocktailRecipes.md` in agent-kit).
+This is work package 2 of the go-public hardening audit of 2026-11-02 (tracked in the local handoff notes).
 
 **Success means**
 
@@ -117,7 +116,8 @@ No list rendering, re-render or database row is touched.
   - no directive value contains `https:`, `http:`, `*` or `'unsafe-inline'`;
   - `GET /robots.txt` is 200, `text/plain`, and contains `Disallow: /api/`;
   - `GET /no-such-page` still returns `index.html` (the fallback is intact).
-- `e2e/csp.spec.ts`, written first: open `/cocktails` and one recipe on the production
+- `e2e/csp.spec.ts`, written first: open the list, the filter selects and the New Recipe
+  dialog on the production
   build; collect `console` messages containing "Content Security Policy" and
   `securitypolicyviolation` events, and every request URL. Fail on any violation and on
   any request whose host differs from the app's. Also check `/robots.txt` returns text.
