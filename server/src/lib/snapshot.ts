@@ -32,14 +32,36 @@ export async function snapshotDatabase(
   const target = join(dataDir, 'snapshots', 'cocktail.db');
   try {
     mkdirSync(join(dataDir, 'snapshots'), { recursive: true });
-    rmSync(target, { force: true });
+    removeCopy(target);
     await db.backup(target);
     db.close();
+    makeSelfContained(target);
     verify(target);
     return target;
   } catch (error) {
     if (db.open) db.close();
-    rmSync(target, { force: true });
+    removeCopy(target);
     throw error;
+  }
+}
+
+/** The copy and any `-wal`, `-shm` or `-journal` file SQLite left beside it. */
+function removeCopy(target: string): void {
+  for (const suffix of ['', '-wal', '-shm', '-journal']) {
+    rmSync(`${target}${suffix}`, { force: true });
+  }
+}
+
+/**
+ * The online backup keeps the source's WAL mode, so opening the copy would
+ * create `-wal` and `-shm` files that a plain file copy leaves behind. Switching
+ * it to the rollback journal makes the snapshot one file that holds everything.
+ */
+function makeSelfContained(file: string): void {
+  const copy = new Database(file);
+  try {
+    copy.pragma('journal_mode = DELETE');
+  } finally {
+    copy.close();
   }
 }

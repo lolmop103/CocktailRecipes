@@ -1,12 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   existsSync,
+  mkdirSync,
   mkdtempSync,
   openSync,
   readFileSync,
   rmSync,
   writeSync,
   writeFileSync,
+  readdirSync,
   closeSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -82,6 +84,40 @@ describe('snapshotDatabase', () => {
     await expect(snapshotDatabase(dir)).rejects.toThrow(Error);
     await expect(snapshotDatabase(dir)).rejects.not.toThrow('database not found');
     expect(existsSync(join(dir, 'snapshots', 'cocktail.db'))).toBe(false);
+  });
+
+  it('snapshotDatabase_walSource_leavesOneSelfContainedFile', async () => {
+    populate(100).close();
+
+    await snapshotDatabase(dir);
+
+    expect(readdirSync(join(dir, 'snapshots'))).toEqual(['cocktail.db']);
+  });
+
+  it('snapshotDatabase_staleSidecarFiles_areRemovedBeforeTheCopy', async () => {
+    populate(100).close();
+    mkdirSync(join(dir, 'snapshots'));
+    writeFileSync(join(dir, 'snapshots', 'cocktail.db-wal'), 'stale');
+    writeFileSync(join(dir, 'snapshots', 'cocktail.db-shm'), 'stale');
+
+    const file = await snapshotDatabase(dir);
+
+    expect(readdirSync(join(dir, 'snapshots'))).toEqual(['cocktail.db']);
+    expect(countRows(file)).toBe(100);
+  });
+
+  it('snapshotDatabase_verifyThrows_removesSidecarFilesToo', async () => {
+    populate(10).close();
+    mkdirSync(join(dir, 'snapshots'));
+    writeFileSync(join(dir, 'snapshots', 'cocktail.db-wal'), 'stale');
+
+    await expect(
+      snapshotDatabase(dir, () => {
+        throw new Error('nope');
+      }),
+    ).rejects.toThrow('nope');
+
+    expect(readdirSync(join(dir, 'snapshots'))).toEqual([]);
   });
 
   it('snapshotDatabase_earlierSnapshot_replacesIt', async () => {
