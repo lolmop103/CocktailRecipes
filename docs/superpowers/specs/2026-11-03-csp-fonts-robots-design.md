@@ -99,14 +99,14 @@ failure modes are covered by the tests: a page that needs a source the policy re
 
 ## Efficiency budget
 
-| Row                                      | Before                          | After                                                                   | Check                                                                 |
-| ---------------------------------------- | ------------------------------- | ----------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| Requests to other hosts on first load    | 3 (2 preconnects, 1 stylesheet) | 0                                                                       | `e2e/csp.spec.ts` fails on any request to a host other than the app's |
-| Render-blocking third-party requests     | 1                               | 0                                                                       | same                                                                  |
-| Requests while idle                      | 0                               | 0                                                                       | existing `e2e/idle.spec.ts`, unchanged                                |
-| Added payload                            | –                               | `robots.txt` (~35 bytes), fetched by crawlers only                      | none needed                                                           |
-| Added response header size               | –                               | about 250 bytes more than the `helmet()` default CSP, on every response | none needed: below one TCP segment of headroom                        |
-| Client bundle size, time to first render | –                               | unchanged, one fewer blocking stylesheet                                | none: no client code changes; `pnpm build` output unchanged           |
+| Row                                      | Before                          | After                                                                 | Check                                                                 |
+| ---------------------------------------- | ------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Requests to other hosts on first load    | 3 (2 preconnects, 1 stylesheet) | 0                                                                     | `e2e/csp.spec.ts` fails on any request to a host other than the app's |
+| Render-blocking third-party requests     | 1                               | 0                                                                     | same                                                                  |
+| Requests while idle                      | 0                               | 0                                                                     | existing `e2e/idle.spec.ts`, unchanged                                |
+| Added payload                            | –                               | `robots.txt` (~35 bytes), fetched by crawlers only                    | none needed                                                           |
+| Response header size                     | helmet default CSP              | about the same: shorter values replace `https:` and `'unsafe-inline'` | none needed                                                           |
+| Client bundle size, time to first render | –                               | unchanged, one fewer blocking stylesheet                              | none: no client code changes; `pnpm build` output unchanged           |
 
 No list rendering, re-render or database row is touched.
 
