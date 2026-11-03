@@ -13,7 +13,8 @@
 # Every device on the network opens https://<LAN_HOST>:8291, and that is the one
 # address where the admin can log in and change recipes: the app accepts changes
 # from a single origin. http://localhost:8290 and https://localhost:8291 browse
-# only. LAN_HOST goes in .env and must equal LAN_HOST in the edge's .env.
+# only. LAN_HOST goes in .env and must equal LAN_HOST in the edge's .env, and
+# .env needs TRUST_PROXY_HOPS=1 as well.
 #
 # The certificate comes from the edge's own authority: visitors click through the
 # warning once; for the admin's phone, trust the edge's root certificate (BinMark,
@@ -34,8 +35,9 @@ services:
     image: cocktailrecipes-test-app
     env_file: !reset []
     environment:
-      # The edge's Caddy is the one proxy in front. Fixed here, because production
-      # reads ${TRUST_PROXY_HOPS} and the development .env may set it to 0.
+      # The edge's Caddy is the one proxy in front, so this is 1, fixed here. .env or
+      # the shell must still set TRUST_PROXY_HOPS=1: `extends` interpolates
+      # compose.prod.yaml first, and that file refuses to run without it.
       TRUST_PROXY_HOPS: '1'
       CLIENT_ORIGIN: https://${LAN_HOST:-localhost}:8291
       ADMIN_USERNAME: ${ADMIN_USERNAME:?set ADMIN_USERNAME in .env}

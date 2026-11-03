@@ -153,8 +153,9 @@ docker compose -f ../BinMark/infra/edge/compose.local.yml up -d   # the edge, fi
 docker compose -f docker-compose-test.yml up -d --build
 ```
 
-It needs `ADMIN_USERNAME` and `ADMIN_PASSWORD_HASH` in `.env`, and `LAN_HOST`: this
-PC's IPv4 address (`ipconfig`), the same value as in the edge's `.env`.
+It needs `ADMIN_USERNAME` and `ADMIN_PASSWORD_HASH` in `.env`, `TRUST_PROXY_HOPS=1`,
+and `LAN_HOST`: this PC's IPv4 address (`ipconfig`), the same value as in the
+edge's `.env`.
 
 | Address                   | Browse | Log in and edit |
 | ------------------------- | ------ | --------------- |
