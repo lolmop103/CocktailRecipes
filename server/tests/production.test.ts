@@ -31,6 +31,7 @@ describe('production boot', () => {
     vi.stubEnv('ALLOW_WEAK_ADMIN_HASH', 'true');
     vi.stubEnv('DATA_DIR', join(root, 'data'));
     vi.stubEnv('CLIENT_ORIGIN', 'http://localhost:3000');
+    vi.stubEnv('TRUST_PROXY_HOPS', '0');
     vi.spyOn(console, 'log').mockImplementation(() => undefined);
     vi.resetModules();
 
