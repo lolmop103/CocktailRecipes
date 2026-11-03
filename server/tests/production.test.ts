@@ -12,6 +12,16 @@ import { join } from 'node:path';
 import type { Express } from 'express';
 
 const INDEX_HTML = '<!doctype html><title>cocktail production shell</title>';
+const ROBOTS_TXT = 'User-agent: *\nDisallow: /api/\n';
+
+function parseCsp(header: string): Record<string, string[]> {
+  const directives: Record<string, string[]> = {};
+  for (const part of header.split(';')) {
+    const [name, ...values] = part.trim().split(/\s+/);
+    if (name) directives[name] = values;
+  }
+  return directives;
+}
 
 describe('production boot', () => {
   const originalCwd = process.cwd();
@@ -22,6 +32,7 @@ describe('production boot', () => {
   beforeAll(async () => {
     mkdirSync(join(root, 'client', 'dist'), { recursive: true });
     writeFileSync(join(root, 'client', 'dist', 'index.html'), INDEX_HTML);
+    writeFileSync(join(root, 'client', 'dist', 'robots.txt'), ROBOTS_TXT);
     mkdirSync(join(root, 'client', 'dist', 'assets'), { recursive: true });
     writeFileSync(join(root, 'client', 'dist', 'assets', 'app-abc123.js'), 'console.log(1);');
     process.chdir(root);
@@ -93,5 +104,52 @@ describe('production boot', () => {
 
     expect(res.status).toBe(404);
     expect(res.body).toMatchObject({ status: 404 });
+  });
+
+  it('csp_directives_matchPolicy', async () => {
+    const res = await request(app).get('/');
+    const csp = parseCsp(res.headers['content-security-policy'] as string);
+
+    expect(csp).toMatchObject({
+      'default-src': ["'self'"],
+      'script-src': ["'self'"],
+      'style-src': ["'self'"],
+      'font-src': ["'self'"],
+      'img-src': ["'self'", 'data:'],
+      'object-src': ["'none'"],
+      'base-uri': ["'self'"],
+      'form-action': ["'self'"],
+      'frame-ancestors': ["'self'"],
+      'script-src-attr': ["'none'"],
+    });
+    expect(csp).toHaveProperty('upgrade-insecure-requests');
+    expect(csp['upgrade-insecure-requests']).toEqual([]);
+  });
+
+  it('csp_noValueLoosens', async () => {
+    const res = await request(app).get('/');
+    const csp = parseCsp(res.headers['content-security-policy'] as string);
+
+    const all = Object.values(csp).flat();
+    expect(all.join(' ')).not.toMatch(/https:|http:|'unsafe-inline'|'unsafe-eval'/);
+    expect(all).not.toContain('*');
+    for (const [name, values] of Object.entries(csp)) {
+      if (name !== 'img-src') expect(values).not.toContain('data:');
+    }
+  });
+
+  it('robotsTxt_served_asText', async () => {
+    const res = await request(app).get('/robots.txt');
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/^text\/plain/);
+    expect(res.text).toContain('Disallow: /api/');
+    expect(res.headers['cache-control']).toBe('no-cache');
+  });
+
+  it('unknownPath_stillServesIndex', async () => {
+    const res = await request(app).get('/no-such-page');
+
+    expect(res.text).toBe(INDEX_HTML);
   });
 });

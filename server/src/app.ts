@@ -21,7 +21,19 @@ export function createApp(): Express {
   app.set('trust proxy', env.TRUST_PROXY_HOPS || false);
 
   // Security
-  app.use(helmet());
+  // Style, font and image sources are overridden because helmet's defaults allow https: and inline styles.
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        useDefaults: true,
+        directives: {
+          styleSrc: ["'self'"],
+          fontSrc: ["'self'"],
+          imgSrc: ["'self'", 'data:'],
+        },
+      },
+    }),
+  );
   app.use(
     cors({
       origin: env.CLIENT_ORIGIN,
