@@ -230,6 +230,8 @@ describe('env — production proxy settings', () => {
     'http://localhost.evil.com',
     'http://127.0.0.1.example.com',
     'http://localhost@evil.com',
+    'file:///',
+    'ws://localhost:3009',
   ])('env_productionWithLookAlikeLocalhost_fails (%s)', async (origin) => {
     production('1', origin);
 

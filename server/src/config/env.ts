@@ -73,10 +73,12 @@ const envSchema = z
         path: ['CLIENT_ORIGIN'],
         message: 'is required in production',
       });
-    } else if (URL.canParse(value.CLIENT_ORIGIN)) {
-      const url = new URL(value.CLIENT_ORIGIN);
-      const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
-      if (url.protocol !== 'https:' && !loopback) {
+    } else {
+      // A scheme such as file: reduces to the opaque origin "null", which cannot parse.
+      const url = URL.canParse(value.CLIENT_ORIGIN) ? new URL(value.CLIENT_ORIGIN) : undefined;
+      const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(url?.hostname ?? '');
+      const allowed = url?.protocol === 'https:' || (url?.protocol === 'http:' && loopback);
+      if (!allowed) {
         ctx.addIssue({
           code: 'custom',
           path: ['CLIENT_ORIGIN'],
