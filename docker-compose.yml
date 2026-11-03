@@ -25,6 +25,8 @@ services:
       # Express serves the client too, so the site's origin is this host and port.
       # Every login and change must come from it, so it follows HOST_PORT.
       CLIENT_ORIGIN: http://localhost:${HOST_PORT:-3009}
+      # No proxy in front: this stack is reached directly.
+      TRUST_PROXY_HOPS: '0'
     restart: unless-stopped
 
 volumes:
