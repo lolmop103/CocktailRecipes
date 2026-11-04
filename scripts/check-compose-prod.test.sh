@@ -30,6 +30,7 @@ run_case() {
 const fs = require("fs");
 const p = process.argv[1];
 let t = fs.readFileSync(p, "utf8");
+const before = t;
 const dropKey = (k) => {
   const lines = t.split("\n");
   const i = lines.findIndex((l) => l.startsWith("    " + k + ":"));
@@ -41,6 +42,7 @@ const dropKey = (k) => {
 };
 const addKey = (txt) => { t = t.replace(/^    restart:/m, txt + "    restart:"); };
 '"$edit"'
+if (t === before) console.error("note: edit changed nothing (key already absent)");
 fs.writeFileSync(p, t);
 ' "$dir/compose.prod.yaml" || { note FAIL "$rule (edit script failed)"; failed=1; return; }
   if [ "$rule" = chown ]; then printf '\nRUN chown -R node:node /app\n' >> "$dir/Dockerfile"; fi
@@ -72,6 +74,21 @@ run_case ports 'addKey("    ports:\n      - \"3000:3000\"\n");'
 run_case cap_add 'addKey("    cap_add:\n      - NET_ADMIN\n");'
 run_case trust-proxy-hops 't = t.replace(/\$\{TRUST_PROXY_HOPS:\?[^}]*\}/, "${TRUST_PROXY_HOPS:-1}");'
 run_case chown ''
+
+# A crashing assertion step must count as a failure: a docker shim returns invalid JSON.
+shim=$tmp/shim
+mkdir -p "$shim"
+printf '#!/bin/sh\necho "{not json"\n' > "$shim/docker"
+chmod +x "$shim/docker"
+PATH="$shim:$PATH" bash "$guard" > "$tmp/crash.out" 2>&1
+code=$?
+if [ "$code" -eq 1 ] && grep -q "^FAIL: internal" "$tmp/crash.out"; then
+  note PASS "node crash counts as a failure"
+else
+  note FAIL "node crash counts as a failure (exit $code)"
+  sed 's/^/    /' "$tmp/crash.out"
+  failed=1
+fi
 
 if [ "$failed" -ne 0 ]; then
   echo "check-compose-prod.test.sh: FAILED"

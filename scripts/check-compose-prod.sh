@@ -75,9 +75,12 @@ else {
 }
 for (const l of out) console.log("FAIL: " + l);
 process.exit(out.length ? 1 : 0);
-' "$tmp/prod.json" > "$tmp/res" || true
+' "$tmp/prod.json" > "$tmp/res" 2> "$tmp/nodeerr"
+  rc=$?
   cat "$tmp/res"
-  fails=$((fails + $(grep -c '^FAIL: ' "$tmp/res")))
+  nf=$(grep -c "^FAIL: " "$tmp/res")
+  fails=$((fails + nf))
+  if [ "$rc" -ne 0 ] && [ "$nf" -eq 0 ]; then fail "internal: node assertion step crashed: $(head -c 200 "$tmp/nodeerr" | tr '\n' ' ')"; fi
 fi
 
 # TRUST_PROXY_HOPS must stay mandatory.
@@ -97,9 +100,12 @@ let bad = 0;
 if (s.read_only !== true) { console.log("FAIL: test-stack: read_only must be true"); bad = 1; }
 if (!(s.cap_drop || []).some((c) => String(c).toUpperCase() === "ALL")) { console.log("FAIL: test-stack: cap_drop must contain ALL"); bad = 1; }
 process.exit(bad);
-' "$tmp/test.json" > "$tmp/res" || true
+' "$tmp/test.json" > "$tmp/res" 2> "$tmp/nodeerr"
+  rc=$?
   cat "$tmp/res"
-  fails=$((fails + $(grep -c '^FAIL: ' "$tmp/res")))
+  nf=$(grep -c "^FAIL: " "$tmp/res")
+  fails=$((fails + nf))
+  if [ "$rc" -ne 0 ] && [ "$nf" -eq 0 ]; then fail "internal: node assertion step crashed: $(head -c 200 "$tmp/nodeerr" | tr '\n' ' ')"; fi
 fi
 
 # Dockerfile: no recursive chown of /app in the runner stage.
