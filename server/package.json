@@ -16,7 +16,8 @@
     "test:coverage": "vitest run --coverage",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "hash-password": "tsx src/scripts/hashPassword.ts"
+    "hash-password": "tsx src/scripts/hashPassword.ts",
+    "snapshot": "tsx src/scripts/snapshot.ts"
   },
   "dependencies": {
     "@cocktail/shared": "workspace:*",

@@ -138,12 +138,21 @@ What it does **not** stop: a flood from many IP addresses at once (a botnet).
 No single app can; that has to be handled in front of it — by your VPS
 provider's DDoS protection, or by Caddy with a rate-limit plugin.
 
-## Backups (manual)
+## Backups
 
-Automated backups are not part of this setup. The database lives in the
-`cocktail-prod-db` volume as `cocktail.db` plus its write-ahead log
-(`cocktail.db-wal`, `cocktail.db-shm`) — always copy them together, with the
-app stopped:
+The nightly encrypted off-site backup is described in
+`docs/superpowers/specs/2026-11-04-backups-design.md`. The image carries its
+snapshot command (`node server/dist/scripts/snapshot.js`, which writes a single
+consistent `cocktail.db` to `/data/snapshots/` while the app runs); the host job,
+its setup and the restore steps live in BinMark's `infra/backup/README.md`. Until
+that job is installed and its restore drill has passed, there is no automated
+backup.
+
+### Manual copy
+
+The database lives in the `cocktail-prod-db` volume as `cocktail.db` plus its
+write-ahead log (`cocktail.db-wal`, `cocktail.db-shm`) — always copy them
+together, with the app stopped:
 
 ```bash
 docker compose -f compose.prod.yaml stop
