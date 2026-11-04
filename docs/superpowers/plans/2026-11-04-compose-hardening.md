@@ -34,10 +34,12 @@
 ### Task 1: The guard script and its test (red first)
 
 **Files:**
+
 - Create: `scripts/check-compose-prod.sh`, `scripts/check-compose-prod.test.sh`
 - Modify: `.github/workflows/ci.yml` (the `configs` job, between `# project: begin` and `# project: end`; the `changes` filter must also trigger on `scripts/check-compose-prod*` and `Dockerfile` if it does not already)
 
 **Interfaces:**
+
 - Produces: `scripts/check-compose-prod.sh [compose-file] [test-compose-file] [dockerfile]` (defaults `compose.prod.yaml`, `docker-compose-test.yml`, `Dockerfile`): prints one `FAIL: <reason>` line per violation, exit 1 on any, `OK` and exit 0 otherwise. `scripts/check-compose-prod.test.sh`: exit 0 when the guard passes on the real files and fails on every weakened copy.
 
 - [ ] **Step 1: Write `check-compose-prod.test.sh`.** It copies the compose file to a temp dir once per rule, removes that one rule with `sed`/`node`, runs the guard on the copy and expects exit 1 with the rule's `FAIL:` text. Rules: `no-new-privileges`, `cap_drop`, `read_only`, `mem_limit`, `memswap_limit`, `cpus`, `pids_limit`, `tmpfs`, `logging`, `init`, a published `ports` entry added, `cap_add` added, the `TRUST_PROXY_HOPS:?` guard weakened to a default, the Dockerfile `chown -R ... /app` restored. It also asserts the guard passes on the real files. Name each case in its output.
@@ -49,34 +51,37 @@
 ### Task 2: Harden the files (green)
 
 **Files:**
+
 - Modify: `compose.prod.yaml`, `Dockerfile` (the runner stage line `RUN mkdir -p /data && chown -R node:node /data /app`), `docker-compose.yml` (the `ports` line)
 
 **Interfaces:**
+
 - Consumes: Task 1's guard.
 - Produces: a compose file that passes the guard, with the starting values from the Global Constraints.
 
 - [ ] **Step 1: Edit `compose.prod.yaml`.** In service `cocktail`, after `init: true` and before `restart`, add:
 
 ```yaml
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    read_only: true
-    tmpfs:
-      - /tmp:size=16m,noexec,nosuid
-    mem_limit: 256m
-    memswap_limit: 256m
-    cpus: 0.5
-    pids_limit: 128
-    logging:
-      driver: json-file
-      options:
-        max-size: 10m
-        max-file: '3'
+security_opt:
+  - no-new-privileges:true
+cap_drop:
+  - ALL
+read_only: true
+tmpfs:
+  - /tmp:size=16m,noexec,nosuid
+mem_limit: 256m
+memswap_limit: 256m
+cpus: 0.5
+pids_limit: 128
+logging:
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: '3'
 ```
 
-  Extend the header comment with one line: hardened, limits measured, see `docs/deploy.md`.
+Extend the header comment with one line: hardened, limits measured, see `docs/deploy.md`.
+
 - [ ] **Step 2: Edit the `Dockerfile`:** `RUN mkdir -p /data && chown node:node /data`, with a comment saying the code under `/app` stays root-owned on purpose.
 - [ ] **Step 3: Edit `docker-compose.yml`:** the ports line becomes `'127.0.0.1:${HOST_PORT:-3009}:3000'`, with a comment that LAN devices go through the edge.
 - [ ] **Step 4: Run** `bash scripts/check-compose-prod.test.sh` and `bash scripts/check-compose-prod.sh`; run `docker compose -f docker-compose.yml config -q`, `-f docker-compose-test.yml config -q` and `-f compose.prod.yaml config -q` with the CI dummy variables. Expected: all pass.
@@ -85,9 +90,11 @@
 ### Task 3: Measure on a throwaway stack and set the final limits
 
 **Files:**
+
 - Modify: `compose.prod.yaml` (final `mem_limit`, `memswap_limit`, `cpus`, and any `tmpfs` path found); `docs/superpowers/specs/2026-11-04-compose-hardening-design.md` (a "Measured" section with the numbers)
 
 **Interfaces:**
+
 - Consumes: Task 2's files.
 - Produces: final limit values and the measured numbers (peak memory, peak CPU) for the PR body.
 
@@ -101,6 +108,7 @@
 ### Task 4: Documentation and close
 
 **Files:**
+
 - Modify: `docs/deploy.md` (a "Container hardening" paragraph after "What protects the site"), `CLAUDE.md` ("Current status & next steps", refreshing the outdated text: WP1 and WP2 done, backups Branches 1 and 2 merged, WP3 done)
 
 - [ ] **Step 1:** Write the deploy paragraph: what is limited and the measured numbers, how to raise a limit (edit the three keys, then `up -d`), that `/tmp` is the only other writable path, that the local stack listens on loopback only, and that the test stack picks the hardening up when recreated.

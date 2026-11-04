@@ -33,18 +33,18 @@ CI check keeps it that way. Nothing is deployed yet, so no live data is converte
 
 ## Decisions (locked)
 
-| # | Topic | Decision | Rationale / cost if wrong |
-|---|---|---|---|
-| 1 | Privileges | `security_opt: [no-new-privileges:true]`, `cap_drop: [ALL]`, nothing added back | The app listens on 3000 as `node` and needs no capability. Cost if wrong: the container fails to start; add back the one capability found, never drop the rule |
-| 2 | Filesystem | `read_only: true`; `/data` stays the volume; `tmpfs: /tmp` of 16 MB with `noexec,nosuid` | A compromised process cannot write code or binaries. A path found by the smoke run gets a `tmpfs` entry, never an exception to `read_only` |
-| 3 | Limits | `mem_limit` with `memswap_limit` equal (no swap), `cpus`, `pids_limit`. Starting values 256m, 0.5, 128; final values = measured peak plus 30 % | The server shares a VPS with other apps. The numbers are shown to the owner before the PR |
-| 4 | Logs | `json-file`, `max-size: 10m`, `max-file: "3"` | A runaway log cannot fill the disk; 30 MB at most |
-| 5 | Code ownership | Runner stage: `chown node:node /data` only; `/app` stays root-owned | A compromised app process cannot rewrite its own code. Cost if wrong: something writes under `/app`; the smoke run finds it |
-| 6 | Environment | `env_file` stays (owner's choice) | Single service, all variables are the app's. Cost: host-only values in `.env` also reach the container; the owner accepts it |
-| 7 | Local stack | `docker-compose.yml` publishes `127.0.0.1:${HOST_PORT:-3009}:3000`; no `BIND_ADDR` | LAN devices go through the edge at `https://<LAN_HOST>:8291`, which does not use this port |
-| 8 | Test stack | `docker-compose-test.yml` is not edited; it inherits the hardening at its next recreate, which the owner does | Gives a real stack to try the hardening; the CI script asserts it still inherits `read_only` and `cap_drop` |
-| 9 | Guard | `scripts/check-compose-prod.sh` in the `configs` job between the `# project:` markers | A later edit that drops a hardening key fails CI. The script itself is tested against weakened copies of the file |
-| 10 | Measurement | Built image on a throwaway stack (own project name, free port, temporary volume), never the owner's stacks | Limits come from numbers, not guesses |
+| #   | Topic          | Decision                                                                                                                                       | Rationale / cost if wrong                                                                                                                                      |
+| --- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Privileges     | `security_opt: [no-new-privileges:true]`, `cap_drop: [ALL]`, nothing added back                                                                | The app listens on 3000 as `node` and needs no capability. Cost if wrong: the container fails to start; add back the one capability found, never drop the rule |
+| 2   | Filesystem     | `read_only: true`; `/data` stays the volume; `tmpfs: /tmp` of 16 MB with `noexec,nosuid`                                                       | A compromised process cannot write code or binaries. A path found by the smoke run gets a `tmpfs` entry, never an exception to `read_only`                     |
+| 3   | Limits         | `mem_limit` with `memswap_limit` equal (no swap), `cpus`, `pids_limit`. Starting values 256m, 0.5, 128; final values = measured peak plus 30 % | The server shares a VPS with other apps. The numbers are shown to the owner before the PR                                                                      |
+| 4   | Logs           | `json-file`, `max-size: 10m`, `max-file: "3"`                                                                                                  | A runaway log cannot fill the disk; 30 MB at most                                                                                                              |
+| 5   | Code ownership | Runner stage: `chown node:node /data` only; `/app` stays root-owned                                                                            | A compromised app process cannot rewrite its own code. Cost if wrong: something writes under `/app`; the smoke run finds it                                    |
+| 6   | Environment    | `env_file` stays (owner's choice)                                                                                                              | Single service, all variables are the app's. Cost: host-only values in `.env` also reach the container; the owner accepts it                                   |
+| 7   | Local stack    | `docker-compose.yml` publishes `127.0.0.1:${HOST_PORT:-3009}:3000`; no `BIND_ADDR`                                                             | LAN devices go through the edge at `https://<LAN_HOST>:8291`, which does not use this port                                                                     |
+| 8   | Test stack     | `docker-compose-test.yml` is not edited; it inherits the hardening at its next recreate, which the owner does                                  | Gives a real stack to try the hardening; the CI script asserts it still inherits `read_only` and `cap_drop`                                                    |
+| 9   | Guard          | `scripts/check-compose-prod.sh` in the `configs` job between the `# project:` markers                                                          | A later edit that drops a hardening key fails CI. The script itself is tested against weakened copies of the file                                              |
+| 10  | Measurement    | Built image on a throwaway stack (own project name, free port, temporary volume), never the owner's stacks                                     | Limits come from numbers, not guesses                                                                                                                          |
 
 ## Measurement (decision 10)
 
@@ -95,24 +95,24 @@ temporary volume, throwaway `.env` outside the repository), hardened file as com
   (snapshot start-up, bulk creates); uncapped (cap 2) a flood of 10 clients reaches 1.14
   cores, the single Node thread's ceiling.
 
-| Limit | Starting | Measured peak | Final | Reason |
-|---|---|---|---|---|
-| `mem_limit` / `memswap_limit` | 256m | 80 MB | 128m | peak plus 30 % is 104 MB, rounded up to 128m. Lower than the starting value, on purpose |
-| `cpus` | 0.5 | 1.14 cores (flood) | 1.0 | peak was cap-bound at 0.5; one core is Node's ceiling, so legitimate work is never throttled and a runaway cannot take more |
-| `pids_limit` | 128 | 23 | 128 | unchanged: not asked to change, ample margin |
+| Limit                         | Starting | Measured peak      | Final | Reason                                                                                                                      |
+| ----------------------------- | -------- | ------------------ | ----- | --------------------------------------------------------------------------------------------------------------------------- |
+| `mem_limit` / `memswap_limit` | 256m     | 80 MB              | 128m  | peak plus 30 % is 104 MB, rounded up to 128m. Lower than the starting value, on purpose                                     |
+| `cpus`                        | 0.5      | 1.14 cores (flood) | 1.0   | peak was cap-bound at 0.5; one core is Node's ceiling, so legitimate work is never throttled and a runaway cannot take more |
+| `pids_limit`                  | 128      | 23                 | 128   | unchanged: not asked to change, ample margin                                                                                |
 
 Re-run on the final limits: healthy, same load, no OOM kill, peak 72 MiB. Recheck on real data
 after launch (the database here is small).
 
 ## Efficiency budget
 
-| Resource | Number | How the design meets it | Verified by |
-|---|---|---|---|
-| Network per action | No change | Only runtime flags change | n/a — no code path changes; smoke run |
-| Network while idle | None added | No timers or polling | n/a — nothing new runs |
-| CPU and memory (server) | Limits = measured peak plus 30 % (starting 256m, 0.5 CPU, 128 pids) | Hard caps in compose | `docker stats` during the measurement run; numbers in the PR |
-| Startup, storage | Health ready as before; log disk at most 30 MB; `/tmp` 16 MB | Rotation, capped `tmpfs` | Smoke run; `docker inspect` |
-| Client bundle, rendering | n/a — no client change | | |
+| Resource                 | Number                                                              | How the design meets it   | Verified by                                                  |
+| ------------------------ | ------------------------------------------------------------------- | ------------------------- | ------------------------------------------------------------ |
+| Network per action       | No change                                                           | Only runtime flags change | n/a — no code path changes; smoke run                        |
+| Network while idle       | None added                                                          | No timers or polling      | n/a — nothing new runs                                       |
+| CPU and memory (server)  | Limits = measured peak plus 30 % (starting 256m, 0.5 CPU, 128 pids) | Hard caps in compose      | `docker stats` during the measurement run; numbers in the PR |
+| Startup, storage         | Health ready as before; log disk at most 30 MB; `/tmp` 16 MB        | Rotation, capped `tmpfs`  | Smoke run; `docker inspect`                                  |
+| Client bundle, rendering | n/a — no client change                                              |                           |                                                              |
 
 ## Error cases
 
