@@ -96,11 +96,11 @@ temporary volume, throwaway `.env` outside the repository), hardened file as com
   cores, in a 20 s abusive flood with the cap lifted. The +30 % rule was deliberately not
   applied to `cpus`: 1.0 (about one core) is chosen so the cap bites under abuse.
 
-| Limit                         | Starting | Measured peak      | Final | Reason                                                                                                                      |
-| ----------------------------- | -------- | ------------------ | ----- | --------------------------------------------------------------------------------------------------------------------------- |
-| `mem_limit` / `memswap_limit` | 256m     | 80 MB              | 128m  | peak plus 30 % is 104 MB, rounded up to 128m. Lower than the starting value, on purpose                                     |
+| Limit                         | Starting | Measured peak      | Final | Reason                                                                                                                                      |
+| ----------------------------- | -------- | ------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mem_limit` / `memswap_limit` | 256m     | 80 MB              | 128m  | peak plus 30 % is 104 MB, rounded up to 128m. Lower than the starting value, on purpose                                                     |
 | `cpus`                        | 0.5      | 1.14 cores (flood) | 1.0   | peak was cap-bound at 0.5; +30 % deliberately not applied: 1.0 is about one core, so legitimate work is never throttled and abuse is capped |
-| `pids_limit`                  | 128      | 23                 | 128   | unchanged: not asked to change, ample margin                                                                                |
+| `pids_limit`                  | 128      | 23                 | 128   | unchanged: not asked to change, ample margin                                                                                                |
 
 Re-run on the final limits: healthy, same load, no OOM kill, peak 72 MiB. Recheck on real data
 after launch (the database here is small).
