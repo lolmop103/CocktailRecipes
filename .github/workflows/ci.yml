@@ -37,6 +37,8 @@ jobs:
               - docker-compose.yml
               - docker-compose-test.yml
               - compose.prod.yaml
+              - Dockerfile
+              - scripts/check-compose-prod*
               - .github/workflows/**
             docker:
               - Dockerfile
@@ -153,6 +155,10 @@ jobs:
           docker compose -f docker-compose-test.yml config -q
           docker compose -f compose.prod.yaml config -q
       # project: begin
+      - name: Production compose is hardened
+        run: bash scripts/check-compose-prod.sh
+      - name: Compose guard fails on weakened copies
+        run: bash scripts/check-compose-prod.test.sh
       # project: end
 
   # Project job (not from a block): the production image builds and answers.
