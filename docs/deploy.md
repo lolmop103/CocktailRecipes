@@ -138,6 +138,37 @@ What it does **not** stop: a flood from many IP addresses at once (a botnet).
 No single app can; that has to be handled in front of it — by your VPS
 provider's DDoS protection, or by Caddy with a rate-limit plugin.
 
+## Container hardening
+
+`compose.prod.yaml` runs the container with the least it needs: no Linux
+capabilities, no privilege escalation (`no-new-privileges`), a read-only root
+filesystem and a log capped at 3 files of 10 MB. The only writable places are the
+data volume (`/data`) and a 16 MB `/tmp` (`noexec`, `nosuid`); the app's code under
+`/app` is owned by root, so the app process cannot rewrite it.
+
+Limits, from a measured run (1000 recipes, reads, bulk creates, the snapshot
+command in a loop and a 20 s flood; see "Measured" in
+`docs/superpowers/specs/2026-11-04-compose-hardening-design.md`):
+
+| Limit                                               | Value | Measured                                                              |
+| --------------------------------------------------- | ----- | --------------------------------------------------------------------- |
+| `mem_limit` and `memswap_limit` (equal, so no swap) | 128m  | peak 80 MB for the whole container, the server alone about 52 MiB     |
+| `cpus`                                              | 1.0   | 3.9 % of a core on average, 1.14 cores in a flood with the cap lifted |
+| `pids_limit`                                        | 128   | peak 23 processes                                                     |
+
+The database in that run was small; check `docker stats` on real data after launch.
+To raise a limit, edit `mem_limit` and `memswap_limit` (keep them equal), `cpus` or
+`pids_limit` in `compose.prod.yaml`, then apply it:
+
+```bash
+docker compose -f compose.prod.yaml up -d
+```
+
+The local stack (`docker-compose.yml`) publishes its port on loopback only
+(`127.0.0.1`), so nothing on the network reaches it directly. The test stack
+(`docker-compose-test.yml`) is not edited; it picks the hardening up the next time
+it is recreated.
+
 ## Backups
 
 The nightly encrypted off-site backup is described in

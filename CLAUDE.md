@@ -96,12 +96,16 @@ None.
 
 ## Current status & next steps (updated 2026-11-04)
 
-On 2026-11-04 the backup design was written
-(`docs/superpowers/specs/2026-11-04-backups-design.md`, work package 5 of the
-go-public audit): a nightly `age`-encrypted archive of this SQLite database and
-BinMark's data in a Cloudflare R2 bucket, bucket locks so a stolen server key
-cannot delete backups, 7 daily, 4 weekly and 12 monthly copies, healthchecks.io
-alerts. No plan or code yet; the host part waits for the server baseline.
+Go-public audit work packages (2026-11-02): WP1 (production fail-safes) and WP2
+(strict CSP, no third-party font, `robots.txt`) are done. WP3, compose hardening
+(`docs/superpowers/specs/2026-11-04-compose-hardening-design.md`), is done: the
+production container is read-only, drops all capabilities, has `no-new-privileges`,
+bounded logs and measured limits (128m memory without swap, 1 CPU, 128 processes);
+the numbers are in the spec and `docs/deploy.md`, to be rechecked on real data
+after launch. Backups (spec `2026-11-04-backups-design.md`, plan
+`2026-11-04-backups.md`): Branch 1 (the snapshot command here) and Branch 2 (the
+backup scripts in BinMark) are merged. The host install, the live restore drill
+(WP7) and package-security rows 6-9 wait for the VPS.
 
 Since 2026-11-03 a production server refuses to start without an explicit
 `TRUST_PROXY_HOPS` (0 = no proxy, 1 = Caddy, 2 = Cloudflare and Caddy) and
