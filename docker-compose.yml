@@ -11,7 +11,8 @@ services:
   app:
     build: .
     ports:
-      - '${HOST_PORT:-3009}:3000'
+      # Bound to localhost only: LAN devices go through the edge, not this port.
+      - '127.0.0.1:${HOST_PORT:-3009}:3000'
     volumes:
       - cocktail-db:/data
     environment:
