@@ -156,6 +156,10 @@ command in a loop and a 20 s flood; see "Measured" in
 | `cpus`                                              | 1.0   | 3.9 % of a core on average, 1.14 cores in a flood with the cap lifted |
 | `pids_limit`                                        | 128   | peak 23 processes                                                     |
 
+The +30 % margin was deliberately not applied to `cpus`: 1.14 cores was seen only in a
+20 s abusive flood with the cap lifted. 1.0 (about one core) lets normal work run
+unthrottled and is meant to bite under abuse.
+
 The database in that run was small; check `docker stats` on real data after launch.
 To raise a limit, edit `mem_limit` and `memswap_limit` (keep them equal), `cpus` or
 `pids_limit` in `compose.prod.yaml`, then apply it:

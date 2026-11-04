@@ -1,6 +1,6 @@
 # Compose hardening — design
 
-Date: 2026-11-04 · Status: draft, awaiting review
+Date: 2026-11-04 · Status: implemented
 
 Go-public audit of 2026-11-02, work package 3. Model: BinMark's WP5
 (`docs/superpowers/specs/2026-11-04-compose-hardening-design.md` in the BinMark repository).
@@ -93,12 +93,13 @@ temporary volume, throwaway `.env` outside the repository), hardened file as com
   itself. Peak processes 23.
 - CPU: average 3.9 % of one core inside the rate limits; bursts up to the then 0.5 cap
   (snapshot start-up, bulk creates); uncapped (cap 2) a flood of 10 clients reaches 1.14
-  cores, the single Node thread's ceiling.
+  cores, in a 20 s abusive flood with the cap lifted. The +30 % rule was deliberately not
+  applied to `cpus`: 1.0 (about one core) is chosen so the cap bites under abuse.
 
 | Limit                         | Starting | Measured peak      | Final | Reason                                                                                                                      |
 | ----------------------------- | -------- | ------------------ | ----- | --------------------------------------------------------------------------------------------------------------------------- |
 | `mem_limit` / `memswap_limit` | 256m     | 80 MB              | 128m  | peak plus 30 % is 104 MB, rounded up to 128m. Lower than the starting value, on purpose                                     |
-| `cpus`                        | 0.5      | 1.14 cores (flood) | 1.0   | peak was cap-bound at 0.5; one core is Node's ceiling, so legitimate work is never throttled and a runaway cannot take more |
+| `cpus`                        | 0.5      | 1.14 cores (flood) | 1.0   | peak was cap-bound at 0.5; +30 % deliberately not applied: 1.0 is about one core, so legitimate work is never throttled and abuse is capped |
 | `pids_limit`                  | 128      | 23                 | 128   | unchanged: not asked to change, ample margin                                                                                |
 
 Re-run on the final limits: healthy, same load, no OOM kill, peak 72 MiB. Recheck on real data

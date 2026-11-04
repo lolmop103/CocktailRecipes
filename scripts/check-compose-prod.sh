@@ -39,9 +39,14 @@ const out = [];
 const f = (rule, detail) => out.push(`${rule}: ${detail}`);
 if (!s) { f("service", "cocktail missing"); }
 else {
-  if (!(s.security_opt || []).some((o) => /^no-new-privileges(:|=)true$/.test(o))) f("no-new-privileges", "security_opt lacks no-new-privileges:true");
+  const so = s.security_opt || [];
+  if (!so.some((o) => /^no-new-privileges(:|=)true$/.test(o))) f("no-new-privileges", "security_opt lacks no-new-privileges:true");
+  for (const o of so) if (!/^no-new-privileges(:|=)true$/.test(o)) f("security_opt", `unexpected entry ${o}`);
   if (!((s.cap_drop || []).length === 1 && String(s.cap_drop[0]).toUpperCase() === "ALL")) f("cap_drop", "must be [ALL]");
   if (s.cap_add && s.cap_add.length) f("cap_add", "must be absent");
+  if (s.privileged) f("privileged", "must not be set");
+  if (s.user !== undefined && /^(root|0)(:|$)/.test(String(s.user))) f("user", "must not be root");
+  for (const k of ["pid", "network_mode", "ipc", "userns_mode"]) if (s[k]) f(k, `must not be set (${s[k]})`);
   if (s.read_only !== true) f("read_only", "must be true");
   const bytes = (v) => {
     if (v === undefined || v === null || v === "") return NaN;
@@ -58,6 +63,7 @@ else {
   if (!(Number(s.pids_limit) > 0)) f("pids_limit", "not set");
   const opts = (s.logging && s.logging.options) || {};
   if (!s.logging || !opts["max-size"] || !opts["max-file"]) f("logging", "log rotation (max-size and max-file) not set");
+  else if (!(bytes(opts["max-size"]) <= 10 * 1024 ** 2)) f("logging", `max-size ${opts["max-size"]} is above 10m`);
   if (s.init !== true) f("init", "must be true");
   if (s.ports && s.ports.length) f("ports", "no published ports allowed");
   // Writable mounts: only the /data volume and a /tmp tmpfs.
@@ -65,8 +71,13 @@ else {
   const data = vols.filter((v) => v.target === "/data");
   if (data.length !== 1 || data[0].type !== "volume") f("mounts", "/data must be a named volume");
   const tmpfs = [];
-  for (const t of Array.isArray(s.tmpfs) ? s.tmpfs : s.tmpfs ? [s.tmpfs] : []) tmpfs.push(String(t).split(":")[0]);
-  for (const v of vols) if (v.type === "tmpfs") tmpfs.push(v.target);
+  for (const t of Array.isArray(s.tmpfs) ? s.tmpfs : s.tmpfs ? [s.tmpfs] : []) {
+    tmpfs.push(String(t).split(":")[0]);
+    const o = String(t).split(":").slice(1).join(":").split(",");
+    if (!o.includes("noexec") || !o.includes("nosuid")) f("tmpfs", `${t} needs noexec and nosuid`);
+  }
+  for (const v of vols) if (v.type === "tmpfs") { tmpfs.push(v.target); f("tmpfs", "use the short tmpfs: form with noexec,nosuid"); }
+  for (const v of vols) if (v.type === "bind") f("mounts", `bind mount ${v.source} -> ${v.target} not allowed`);
   if (tmpfs.length !== 1 || tmpfs[0] !== "/tmp") f("tmpfs", `must be exactly /tmp (found: ${tmpfs.join(",") || "none"})`);
   for (const v of vols) {
     if (v.target === "/data" || (v.type === "tmpfs" && v.target === "/tmp")) continue;
@@ -86,6 +97,8 @@ fi
 # TRUST_PROXY_HOPS must stay mandatory.
 if render "$compose" > /dev/null; then
   fail "trust-proxy-hops: $compose renders without TRUST_PROXY_HOPS (the :? guard is gone)"
+elif ! grep -q TRUST_PROXY_HOPS "$tmp/err"; then
+  fail "trust-proxy-hops: render without TRUST_PROXY_HOPS failed for another reason: $(head -c 200 "$tmp/err" | tr '\n' ' ')"
 fi
 
 # The test stack keeps the hardening it inherits.
@@ -108,11 +121,48 @@ process.exit(bad);
   if [ "$rc" -ne 0 ] && [ "$nf" -eq 0 ]; then fail "internal: node assertion step crashed: $(head -c 200 "$tmp/nodeerr" | tr '\n' ' ')"; fi
 fi
 
-# Dockerfile: no recursive chown of /app in the runner stage.
+# Dockerfile: the runner stage must exist and leave /app root-owned.
 if [ ! -f "$dockerfile" ]; then
   fail "dockerfile: $dockerfile not found"
-elif awk '/^FROM .* AS runner/{r=1; next} /^FROM /{r=0} r' "$dockerfile" | grep -Eq 'chown[[:space:]]+(-[A-Za-z]*R|--recursive)[^#]*/app([[:space:]]|$)'; then
-  fail "dockerfile: runner stage runs chown -R on /app"
+else
+  node -e '
+const lines = require("fs").readFileSync(process.argv[1], "utf8").replace(/\r/g, "").replace(/\\\n/g, " ").split("\n");
+let inRunner = false;
+let found = false;
+const out = [];
+for (const raw of lines) {
+  const l = raw.trim();
+  if (/^from\s/i.test(l)) {
+    inRunner = /\sas\s+runner\s*$/i.test(l);
+    if (inRunner) found = true;
+    continue;
+  }
+  if (!inRunner || l.startsWith("#")) continue;
+  const tok = l.split(/[\s;&|]+/).filter(Boolean);
+  if (/^(copy|add)$/i.test(tok[0] || "")) {
+    const dest = tok[tok.length - 1];
+    if (tok.some((x) => /^--chown(=|$)/i.test(x)) && !/^\/data(\/|$)/.test(dest)) out.push(`runner stage COPY/ADD --chown into ${dest}`);
+  }
+  tok.forEach((x, i) => {
+    if (x !== "chown") return;
+    let rec = false;
+    const rest = [];
+    for (const a of tok.slice(i + 1)) {
+      if (a === "--recursive" || /^-[A-Za-z]*R[A-Za-z]*$/.test(a)) rec = true;
+      else if (!a.startsWith("-")) rest.push(a);
+    }
+    if (rec && rest.slice(1).some((a) => /^(\/app\/?|\/app\/\*|\.\/?|\*)$/.test(a))) out.push("runner stage runs chown -R on /app");
+  });
+}
+if (!found) out.push("no runner stage found (FROM ... AS runner)");
+for (const o of out) console.log("FAIL: dockerfile: " + o);
+process.exit(out.length ? 1 : 0);
+' "$dockerfile" > "$tmp/res" 2> "$tmp/nodeerr"
+  rc=$?
+  cat "$tmp/res"
+  nf=$(grep -c "^FAIL: " "$tmp/res")
+  fails=$((fails + nf))
+  if [ "$rc" -ne 0 ] && [ "$nf" -eq 0 ]; then fail "internal: node assertion step crashed: $(head -c 200 "$tmp/nodeerr" | tr '\n' ' ')"; fi
 fi
 
 if [ "$fails" -gt 0 ]; then exit 1; fi

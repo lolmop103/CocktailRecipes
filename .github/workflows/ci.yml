@@ -179,7 +179,11 @@ jobs:
           # Production refuses to start without admin credentials; these are the
           # test-only ones from playwright.config.ts, whose cheap hash production
           # accepts only with ALLOW_WEAK_ADMIN_HASH.
+          # Run with the same restrictions as compose.prod.yaml; the image's /data
+          # volume is an anonymous volume, so it stays writable.
           docker run -d --name cocktail -p 3000:3000 \
+            --read-only --tmpfs /tmp:size=16m,noexec,nosuid \
+            --cap-drop ALL --security-opt no-new-privileges:true \
             -e ALLOW_WEAK_ADMIN_HASH=true \
             -e TRUST_PROXY_HOPS=0 \
             -e CLIENT_ORIGIN=http://localhost:3000 \
@@ -198,6 +202,9 @@ jobs:
           echo "::error::server did not become healthy in time"
           docker logs cocktail
           exit 1
+      - name: App code in the image is root-owned
+        run: |
+          docker run --rm --entrypoint sh cocktail:ci -c '[ -z "$(find /app ! -user root -print -quit)" ]'
 
   # agent-kit ci-block: check/ci-ok v1
   # The one result to look at: green when every check passed or was skipped. Skipped
