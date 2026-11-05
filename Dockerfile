@@ -54,7 +54,8 @@ COPY --from=builder /app/server/dist ./server/dist
 COPY --from=builder /app/client/dist ./client/dist
 
 # The database directory must be writable by the unprivileged runtime user.
-RUN mkdir -p /data && chown -R node:node /data /app
+# The code under /app stays root-owned on purpose: the runtime user can read it but not change it.
+RUN mkdir -p /data && chown node:node /data
 
 USER node
 

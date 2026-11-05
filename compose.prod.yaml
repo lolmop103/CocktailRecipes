@@ -1,4 +1,7 @@
 # Production: the app behind the owner's existing Caddy. See docs/deploy.md.
+# Hardened (read-only, no capabilities, resource limits). Limits measured on a
+# throwaway stack (peak 80 MB memory, 1.1 CPU in a flood, 23 processes; see "Measured"
+# in docs/superpowers/specs/2026-11-04-compose-hardening-design.md).
 #
 #   docker compose -f compose.prod.yaml up -d --build
 #
@@ -29,6 +32,22 @@ services:
     # A tiny init as PID 1 forwards `docker stop` to Node, so the container
     # stops at once instead of being killed after 10 s.
     init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,noexec,nosuid
+    mem_limit: 128m
+    memswap_limit: 128m
+    cpus: 1.0
+    pids_limit: 128
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
     restart: unless-stopped
 
 networks:
