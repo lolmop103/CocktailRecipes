@@ -16,6 +16,8 @@ services:
   cocktail:
     build: .
     image: cocktail:latest
+    # Must exceed SHUTDOWN_FORCE_MS (8000 ms) so the app force timer fires before SIGKILL.
+    stop_grace_period: 10s
     env_file: ${COCKTAIL_ENV_FILE:-.env}
     environment:
       NODE_ENV: production

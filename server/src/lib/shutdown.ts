@@ -11,7 +11,7 @@ export interface ShutdownOptions {
 
 /**
  * Graceful shutdown on SIGTERM and SIGINT: stop accepting connections, drop idle
- * keep-alive ones, let in-flight requests finish, close the database, exit 0.
+ * keep-alive ones, let in-flight requests finish and close their connections, close the database, exit 0.
  * A forced-exit timer (created only after the first signal, unref'd) exits 1
  * after `forceAfterMs`; a second signal exits 1 at once. Returns the shutdown
  * function so tests can call it directly.
@@ -25,6 +25,14 @@ export function installShutdown(server: Server, options: ShutdownOptions): () =>
   } = options;
 
   let started = false;
+
+  // A response finishing after shutdown began must not leave its keep-alive
+  // connection open until Node's keepAliveTimeout: end the socket once flushed.
+  server.on('request', (req, res) => {
+    res.once('finish', () => {
+      if (started) req.socket.end();
+    });
+  });
 
   const shutdown = (): void => {
     if (started) {

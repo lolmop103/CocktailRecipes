@@ -116,6 +116,39 @@ describe('installShutdown', () => {
     expect(exit).toHaveBeenCalledExactlyOnceWith(0);
   });
 
+  it('closes the keep-alive connection of an in-flight request once it is answered', async () => {
+    let release: () => void = () => {};
+    let arrived: () => void = () => {};
+    const inHandler = new Promise<void>((r) => (arrived = r));
+    const order: string[] = [];
+    const server = await start((_req, res) => {
+      arrived();
+      res.on('finish', () => order.push('response'));
+      release = () => res.end('slow-done');
+    });
+    const { exit, shutdown } = setup(server, { closeDb: () => order.push('closeDb') });
+    const agent = new Agent({ keepAlive: true });
+    cleanups.push(() => agent.destroy());
+    const pending = new Promise<string>((resolve, reject) => {
+      const req = request({ port: portOf(server), host: '127.0.0.1', agent }, (res) => {
+        let body = '';
+        res.on('data', (c: Buffer) => (body += c.toString()));
+        res.on('end', () => resolve(body));
+      });
+      req.on('error', reject);
+      req.end();
+    });
+    await inHandler;
+    shutdown();
+    const t0 = Date.now();
+    release();
+    expect(await pending).toBe('slow-done');
+    await waitFor(() => exit.mock.calls.length > 0);
+    expect(Date.now() - t0).toBeLessThan(1000);
+    expect(order).toEqual(['response', 'closeDb']);
+    expect(exit).toHaveBeenCalledExactlyOnceWith(0);
+  });
+
   it('exits 1 with an error log when a request never finishes', async () => {
     let arrived: () => void = () => {};
     const inHandler = new Promise<void>((r) => (arrived = r));

@@ -200,7 +200,10 @@ afterwards), 2026-11-06, Docker 29.6.1 on the owner's machine:
 - A request in flight (body still being sent) when `docker stop -t 10` was issued
   finished with its normal response and the container exited 0. The connection it used
   stayed open as keep-alive, so shutdown completed about 6.5 s after the signal (the
-  Node keep-alive timeout), inside the 8 s bound.
+  Node keep-alive timeout), inside the 8 s bound. Fixed afterwards: the socket is now
+  ended when a response finishes during shutdown (covered by a unit test, not re-measured
+  in a container).
 - On this machine Docker's default stop timeout is 1 s (`StopTimeout=1`): a plain
   `docker stop` with a request in flight ended in SIGKILL (exit 137) after 1 s. The
-  8 s grace period needs `stop_grace_period: 10s` (or `docker stop -t 10`) to apply.
+  8 s grace period needs `stop_grace_period: 10s`, now set on the `cocktail` service in
+  `compose.prod.yaml`.
