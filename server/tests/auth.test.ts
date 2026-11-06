@@ -64,12 +64,10 @@ describe('POST /api/auth/login', () => {
     expect(stored[0]?.token_hash).toMatch(/^[0-9a-f]{64}$/);
   });
 
-  it('login_purgesExpiredSessions', async () => {
-    sessionStore.create('stale', 'any-tag', 1, 2);
+  it('login_cookieMaxAge_14Days', async () => {
+    const res = await login(TEST_ADMIN);
 
-    await login(TEST_ADMIN);
-
-    expect(sessionStore.purgeExpired(3)).toBe(0);
+    expect(String(res.headers['set-cookie'])).toContain(`Max-Age=${String(14 * 86_400)}`);
   });
 });
 
@@ -157,6 +155,23 @@ describe('session revocation', () => {
 
     // The token is sent explicitly: a client that kept the cookie must be refused.
     expect((await meWith(token)).body).toEqual({ authenticated: false });
+  });
+
+  it('login_again_endsTheFirstSessionOnly', async () => {
+    const first = tokenFrom(await login(TEST_ADMIN));
+    const second = tokenFrom(await login(TEST_ADMIN));
+
+    expect((await meWith(first)).body).toEqual({ authenticated: false });
+    expect((await meWith(second)).body).toMatchObject({ authenticated: true });
+  });
+
+  it('login_wrong_doesNotRevokeTheLiveSession', async () => {
+    const token = tokenFrom(await login(TEST_ADMIN));
+
+    const wrong = await login({ ...TEST_ADMIN, password: 'not-the-password' });
+
+    expect(wrong.status).toBe(401);
+    expect((await meWith(token)).body).toMatchObject({ authenticated: true });
   });
 
   it('passwordChange_endsExistingSessions', async () => {

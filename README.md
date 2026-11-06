@@ -122,7 +122,7 @@ later as a confusing runtime error.
 | `ADMIN_USERNAME`        | — (required in production) | The one account that may change data                                         |
 | `ADMIN_PASSWORD_HASH`   | — (required in production) | From `pnpm --filter cocktail-server hash-password`; keep the single quotes   |
 | `ALLOW_WEAK_ADMIN_HASH` | `false`                    | Tests only: lets production accept the cheap test hash; never on a server    |
-| `SESSION_TTL_DAYS`      | `30`                       | How long a login lasts                                                       |
+| `SESSION_TTL_DAYS`      | `14`                       | How long a login lasts                                                       |
 | `TRUST_PROXY_HOPS`      | — (required in production) | Proxies in front of the app; `0` locally, `1` behind Caddy, `2` Cloudflare   |
 
 ## Docker

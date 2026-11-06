@@ -63,4 +63,43 @@ describe('sessionStore', () => {
 
     expect(sessionStore.isValid('hash-a', 'credentials-v2', NOW)).toBe(false);
   });
+
+  const rowCount = () =>
+    (db.prepare('SELECT COUNT(*) AS n FROM sessions').get() as { n: number }).n;
+
+  it('replaceAll_twice_exactlyOneRowAndItIsTheSecond', () => {
+    sessionStore.replaceAll('first', TAG, NOW, NOW + HOUR);
+    sessionStore.replaceAll('second', TAG, NOW, NOW + HOUR);
+
+    expect(rowCount()).toBe(1);
+    expect(sessionStore.isValid('second', TAG, NOW)).toBe(true);
+    expect(sessionStore.isValid('first', TAG, NOW)).toBe(false);
+  });
+
+  it('replaceAll_removesEveryOtherRow', () => {
+    sessionStore.create('a', TAG, NOW, NOW + HOUR);
+    sessionStore.create('b', TAG, NOW, NOW + HOUR);
+
+    sessionStore.replaceAll('c', TAG, NOW, NOW + HOUR);
+
+    expect(rowCount()).toBe(1);
+  });
+
+  it('replaceAll_insertFails_deleteRolledBack', () => {
+    sessionStore.replaceAll('old', TAG, NOW, NOW + HOUR);
+
+    expect(() => sessionStore.replaceAll({} as unknown as string, TAG, NOW, NOW + HOUR)).toThrow();
+
+    expect(rowCount()).toBe(1);
+    expect(sessionStore.isValid('old', TAG, NOW)).toBe(true);
+  });
+
+  it('removeAll_leavesNoRows', () => {
+    sessionStore.create('a', TAG, NOW, NOW + HOUR);
+    sessionStore.create('b', TAG, NOW, NOW + HOUR);
+
+    sessionStore.removeAll();
+
+    expect(rowCount()).toBe(0);
+  });
 });

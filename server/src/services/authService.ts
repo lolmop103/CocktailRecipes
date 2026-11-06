@@ -69,8 +69,7 @@ export const authService = {
 
     const maxAgeMs = SESSION_TTL_DAYS * DAY_MS;
     const token = randomBytes(TOKEN_BYTES).toString('base64url');
-    sessionStore.purgeExpired(now);
-    sessionStore.create(
+    sessionStore.replaceAll(
       tokenHash(token),
       credentialTag(ADMIN_USERNAME, ADMIN_PASSWORD_HASH),
       now,
