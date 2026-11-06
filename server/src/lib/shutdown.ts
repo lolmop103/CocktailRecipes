@@ -11,7 +11,8 @@ export interface ShutdownOptions {
 
 /**
  * Graceful shutdown on SIGTERM and SIGINT: stop accepting connections, drop idle
- * keep-alive ones, let in-flight requests finish and close their connections, close the database, exit 0.
+ * keep-alive ones, let in-flight requests finish and close their connections, close
+ * the database, exit 0.
  * A forced-exit timer (created only after the first signal, unref'd) exits 1
  * after `forceAfterMs`; a second signal exits 1 at once. Returns the shutdown
  * function so tests can call it directly.
@@ -43,12 +44,15 @@ export function installShutdown(server: Server, options: ShutdownOptions): () =>
     started = true;
     logger.info('Shutting down');
 
-    setTimeout(() => {
+    const forceTimer = setTimeout(() => {
       logger.error('Graceful shutdown timed out, forcing exit', { forceAfterMs });
       exit(1);
-    }, forceAfterMs).unref();
+    }, forceAfterMs);
+    forceTimer.unref();
 
+    // The callback error (ERR_SERVER_NOT_RUNNING) is ignored on purpose: the database must still close.
     server.close(() => {
+      clearTimeout(forceTimer);
       try {
         closeDb();
       } catch (error) {

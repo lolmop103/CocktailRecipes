@@ -57,17 +57,21 @@ function setup(server: Server, opts: { closeDb?: () => void; forceAfterMs?: numb
 const waitFor = (fn: () => boolean) => vi.waitFor(() => expect(fn()).toBe(true));
 
 describe('installShutdown', () => {
-  it('registers SIGTERM and SIGINT handlers by default', () => {
-    const before = [process.listenerCount('SIGTERM'), process.listenerCount('SIGINT')];
+  it('installShutdown_defaultSignals_registersSigtermAndSigintHandlers', () => {
+    const before = {
+      SIGTERM: process.listeners('SIGTERM'),
+      SIGINT: process.listeners('SIGINT'),
+    };
     const server = createServer();
     installShutdown(server, { closeDb: () => {}, exit: () => {} });
-    expect(process.listenerCount('SIGTERM')).toBe(before[0]! + 1);
-    expect(process.listenerCount('SIGINT')).toBe(before[1]! + 1);
-    process.removeAllListeners('SIGTERM');
-    process.removeAllListeners('SIGINT');
+    for (const signal of ['SIGTERM', 'SIGINT'] as const) {
+      const added = process.listeners(signal).filter((l) => !before[signal].includes(l));
+      expect(added).toHaveLength(1);
+      for (const l of added) process.removeListener(signal, l);
+    }
   });
 
-  it('stops accepting, closes the db after the close callback, then exits 0', async () => {
+  it('shutdown_idleServer_closesDbAfterCloseCallbackThenExits0', async () => {
     const server = await start((_req, res) => res.end('ok'));
     const port = portOf(server);
     const order: string[] = [];
@@ -80,7 +84,7 @@ describe('installShutdown', () => {
     await expect(get(port)).rejects.toThrow();
   });
 
-  it('does not wait for an idle keep-alive connection', async () => {
+  it('shutdown_idleKeepAliveConnection_exits0WithoutWaiting', async () => {
     const server = await start((_req, res) => res.end('ok'));
     const socket = connect(portOf(server), '127.0.0.1');
     cleanups.push(() => socket.destroy());
@@ -92,7 +96,7 @@ describe('installShutdown', () => {
     expect(exit).toHaveBeenCalledExactlyOnceWith(0);
   });
 
-  it('lets an in-flight request finish before closing the db', async () => {
+  it('shutdown_inFlightRequest_finishesBeforeDbCloses', async () => {
     let release: () => void = () => {};
     let arrived: () => void = () => {};
     const inHandler = new Promise<void>((r) => (arrived = r));
@@ -116,7 +120,7 @@ describe('installShutdown', () => {
     expect(exit).toHaveBeenCalledExactlyOnceWith(0);
   });
 
-  it('closes the keep-alive connection of an in-flight request once it is answered', async () => {
+  it('shutdown_inFlightKeepAliveRequest_endsSocketOnceAnswered', async () => {
     let release: () => void = () => {};
     let arrived: () => void = () => {};
     const inHandler = new Promise<void>((r) => (arrived = r));
@@ -149,7 +153,7 @@ describe('installShutdown', () => {
     expect(exit).toHaveBeenCalledExactlyOnceWith(0);
   });
 
-  it('exits 1 with an error log when a request never finishes', async () => {
+  it('shutdown_requestNeverFinishes_forcesExit1WithErrorLog', async () => {
     let arrived: () => void = () => {};
     const inHandler = new Promise<void>((r) => (arrived = r));
     const server = await start(() => arrived());
@@ -166,7 +170,7 @@ describe('installShutdown', () => {
     await pending;
   });
 
-  it('exits 1 at once on a second signal', async () => {
+  it('shutdown_secondSignal_exits1AtOnce', async () => {
     let arrived: () => void = () => {};
     const inHandler = new Promise<void>((r) => (arrived = r));
     const server = await start(() => arrived());
@@ -181,7 +185,7 @@ describe('installShutdown', () => {
     await pending;
   });
 
-  it('logs an error and exits 1 when closeDb throws', async () => {
+  it('shutdown_closeDbThrows_logsAndExits1', async () => {
     const server = await start((_req, res) => res.end('ok'));
     const errorLog = vi.spyOn(logger, 'error').mockImplementation(() => {});
     const { exit, shutdown } = setup(server, {
@@ -195,7 +199,7 @@ describe('installShutdown', () => {
     expect(errorLog).toHaveBeenCalled();
   });
 
-  it('creates no timer before the first signal and unrefs the force timer', () => {
+  it('shutdown_beforeFirstSignal_createsNoTimerAndUnrefsForceTimer', () => {
     vi.useFakeTimers();
     const server = createServer();
     const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
@@ -205,5 +209,20 @@ describe('installShutdown', () => {
     expect(vi.getTimerCount()).toBe(1);
     const timer = setTimeoutSpy.mock.results[0]!.value as NodeJS.Timeout;
     expect(timer.hasRef()).toBe(false);
+  });
+
+  it('shutdown_closeDbThrowsNonError_logsAndExits1', async () => {
+    const server = await start((_req, res) => res.end('ok'));
+    const errorLog = vi.spyOn(logger, 'error').mockImplementation(() => {});
+    const { exit, shutdown } = setup(server, {
+      closeDb: () => {
+        const thrown: unknown = 'db busy';
+        throw thrown;
+      },
+    });
+    shutdown();
+    await waitFor(() => exit.mock.calls.length > 0);
+    expect(exit).toHaveBeenCalledExactlyOnceWith(1);
+    expect(errorLog).toHaveBeenCalledWith('Closing the database failed', { error: 'db busy' });
   });
 });
