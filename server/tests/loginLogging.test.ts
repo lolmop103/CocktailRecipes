@@ -1,0 +1,56 @@
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { authService } from '../src/services/authService.js';
+import { logger } from '../src/lib/logger.js';
+import { TEST_ADMIN } from './helpers/admin.js';
+
+const warn = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+const USER = 'probe-user-7';
+const PASS = 'probe-pass-7';
+const attempt = (u: string, p: string, now: number) =>
+  authService.login(u, p, now).catch(() => undefined);
+const linesOf = (message: string) => warn.mock.calls.filter(([m]) => m === message);
+
+afterEach(() => {
+  warn.mockClear();
+});
+
+describe('failed-login logging', () => {
+  it('login_wrongCredentials_logsCountsOnly', async () => {
+    await attempt(USER, PASS, 1000);
+
+    expect(warn).toHaveBeenCalledWith('Login failed', {
+      consecutiveFailures: 1,
+      cooldownSeconds: 0,
+    });
+    const text = JSON.stringify(warn.mock.calls);
+    for (const secret of [USER, PASS, '::ffff', '127.0.0.1']) expect(text).not.toContain(secret);
+  });
+
+  it('login_wrongUsernameOrWrongPassword_identicalLines', async () => {
+    await attempt(USER, TEST_ADMIN.password, 1000);
+    await attempt(TEST_ADMIN.username, PASS, 2000);
+
+    expect(warn.mock.calls).toEqual([
+      ['Login failed', { consecutiveFailures: 1, cooldownSeconds: 0 }],
+      ['Login failed', { consecutiveFailures: 2, cooldownSeconds: 0 }],
+    ]);
+  });
+
+  it('login_fiveRefusalsInOneWindow_oneRefusalLine', async () => {
+    for (let i = 0; i < 3; i += 1) await attempt(USER, PASS, 1000);
+    warn.mockClear();
+
+    for (let i = 0; i < 5; i += 1) await attempt(USER, PASS, 2000 + i);
+
+    expect(linesOf('Login refused during cooldown')).toEqual([
+      ['Login refused during cooldown', { retryAfterSeconds: expect.any(Number) }],
+    ]);
+    expect(warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('login_success_logsNothing', async () => {
+    await authService.login(TEST_ADMIN.username, TEST_ADMIN.password, 1000);
+
+    expect(warn).not.toHaveBeenCalled();
+  });
+});

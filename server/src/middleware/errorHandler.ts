@@ -23,7 +23,7 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
   const known = bodyFor(err);
 
   if (err instanceof TooManyRequestsError && known) {
-    // Expected during a cooldown; the throttle writes its own single log line.
+    // Expected during a cooldown; authService writes a single log line per window.
     res.set('Retry-After', String(err.retryAfterSeconds));
     res.status(known.status).json(known);
     return;

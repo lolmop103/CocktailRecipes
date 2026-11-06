@@ -1,6 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { env } from '../config/env.js';
 import { sessionStore } from '../data/sessionStore.js';
+import { logger } from '../lib/logger.js';
 import { loginThrottle } from '../lib/loginThrottle.js';
 import { verifyPassword } from '../lib/password.js';
 import { ServiceUnavailableError, TooManyRequestsError, UnauthorizedError } from '../lib/errors.js';
@@ -43,6 +44,12 @@ export const authService = {
 
     const admission = loginThrottle.admit(now);
     if (!admission.ok) {
+      // One line per window, and no client data: the throttle is global.
+      if (admission.firstRefusal) {
+        logger.warn('Login refused during cooldown', {
+          retryAfterSeconds: admission.retryAfterSeconds,
+        });
+      }
       throw new TooManyRequestsError(
         'Too many attempts — try again shortly',
         admission.retryAfterSeconds,
@@ -51,7 +58,11 @@ export const authService = {
 
     const passwordOk = await verifyPassword(password, ADMIN_PASSWORD_HASH);
     if (!sameText(username, ADMIN_USERNAME) || !passwordOk) {
-      // Task 3 writes the failed-login log line here (admission.failures / cooldownSeconds).
+      // Counts only: never the address, the typed username or password, or which one was wrong.
+      logger.warn('Login failed', {
+        consecutiveFailures: admission.failures,
+        cooldownSeconds: admission.cooldownSeconds,
+      });
       throw new UnauthorizedError('Wrong username or password');
     }
     loginThrottle.succeed();
