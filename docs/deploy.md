@@ -131,8 +131,11 @@ Migrations run automatically at start; the data volume is kept.
   own `Origin` (cross-site requests are refused).
 - Every read is bounded: at most 20 + 20 ingredient filters, 100 characters of
   search, pages of at most 48 recipes.
-- Per client IP: 120 API reads and 60 writes a minute, 5 wrong passwords per
-  15 minutes. Over a limit the answer is 429 with `Retry-After`.
+- Per client IP: 120 API reads and 60 writes a minute. Over a limit the answer
+  is 429 with `Retry-After`.
+- Login: 3 free wrong attempts, then a flat 30 s cooldown shared by everyone
+  (not keyed on the client IP, no lockout). During it the answer is 429 with
+  `Retry-After`. It resets after a correct login or 15 minutes without attempts.
 
 What it does **not** stop: a flood from many IP addresses at once (a botnet).
 No single app can; that has to be handled in front of it — by your VPS

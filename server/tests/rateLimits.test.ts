@@ -6,7 +6,6 @@ import { adminAgent, TEST_ADMIN, TEST_ORIGIN } from './helpers/admin.js';
 
 const READ_LIMIT = 120;
 const WRITE_LIMIT = 60;
-const LOGIN_FAILURES = 5;
 const MINUTE = 60_000;
 
 /** Sends `count` requests one after another and returns the last response. */
@@ -77,31 +76,18 @@ describe('write limit', () => {
   });
 });
 
-describe('login limit', () => {
-  const failLogin = (app: Express) =>
-    request(app)
-      .post('/api/auth/login')
-      .set('Origin', TEST_ORIGIN)
-      .send({ ...TEST_ADMIN, password: 'wrong-password' });
-
-  it('login_sixthFailure_429', async () => {
+describe('login is not limited per IP', () => {
+  it('login_moreWrongAttemptsThanTheWriteLimit_neverAnsweredByTheIpLimiter', async () => {
     const app = createApp();
-    await repeat(LOGIN_FAILURES, () => failLogin(app));
+    for (let i = 0; i < WRITE_LIMIT + 5; i += 1) {
+      const res = await request(app)
+        .post('/api/auth/login')
+        .set('Origin', TEST_ORIGIN)
+        .send({ ...TEST_ADMIN, password: 'wrong-password' });
 
-    const res = await failLogin(app);
-
-    expect(res.status).toBe(429);
-  });
-
-  it('login_successes_notCounted', async () => {
-    const app = createApp();
-    await repeat(LOGIN_FAILURES + 1, () =>
-      request(app).post('/api/auth/login').set('Origin', TEST_ORIGIN).send(TEST_ADMIN),
-    );
-
-    const res = await failLogin(app);
-
-    expect(res.status).toBe(401);
+      if (i < 3) expect(res.status).toBe(401);
+      expect(res.body.message).not.toBe('Too many requests — try again in a moment');
+    }
   });
 });
 
@@ -142,35 +128,5 @@ describe('proxy trust', () => {
     const app = await appBehindProxy();
 
     expect(app.get('trust proxy')).toBe(1);
-  });
-});
-
-describe('login limit — only wrong credentials count', () => {
-  it('login_crossSiteAttempts_doNotLockOutTheAdmin', async () => {
-    const app = createApp();
-    await repeat(LOGIN_FAILURES + 1, () =>
-      request(app).post('/api/auth/login').set('Origin', 'https://evil.example').send(TEST_ADMIN),
-    );
-
-    const res = await request(app)
-      .post('/api/auth/login')
-      .set('Origin', TEST_ORIGIN)
-      .send(TEST_ADMIN);
-
-    expect(res.status).toBe(204);
-  });
-
-  it('login_malformedBodies_doNotCount', async () => {
-    const app = createApp();
-    await repeat(LOGIN_FAILURES + 1, () =>
-      request(app).post('/api/auth/login').set('Origin', TEST_ORIGIN).send({ username: '' }),
-    );
-
-    const res = await request(app)
-      .post('/api/auth/login')
-      .set('Origin', TEST_ORIGIN)
-      .send(TEST_ADMIN);
-
-    expect(res.status).toBe(204);
   });
 });

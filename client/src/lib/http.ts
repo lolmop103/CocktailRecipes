@@ -7,18 +7,31 @@ interface ApiErrorBody {
   status?: number;
   message?: string;
   errors?: { path: string; message: string }[];
+  retryAfterSeconds?: unknown;
 }
+
+/** Used when the server sent no message and the response has no status text (HTTP/2). */
+const FALLBACK_MESSAGE = 'Request failed. Try again in a moment.';
+const RATE_LIMITED_MESSAGE = 'Too many attempts. Try again in a moment.';
 
 /** An error carrying the server's structured field errors, when it sent any. */
 export class ApiError extends Error {
   readonly status: number;
   readonly fieldErrors: { path: string; message: string }[];
+  /** Seconds until a rate-limited request may be retried; only a finite number of at least 1. */
+  readonly retryAfterSeconds: number | undefined;
 
-  constructor(status: number, message: string, fieldErrors: { path: string; message: string }[]) {
+  constructor(
+    status: number,
+    message: string,
+    fieldErrors: { path: string; message: string }[],
+    retryAfterSeconds?: number,
+  ) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.fieldErrors = fieldErrors;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 
@@ -33,7 +46,15 @@ export async function request<T>(url: string, init?: RequestInit): Promise<T> {
     } catch {
       // Non-JSON error body (proxy error, network appliance) — fall through.
     }
-    throw new ApiError(res.status, body.message ?? res.statusText, body.errors ?? []);
+    const retry = body.retryAfterSeconds;
+    throw new ApiError(
+      res.status,
+      body.message ||
+        res.statusText ||
+        (res.status === 429 ? RATE_LIMITED_MESSAGE : FALLBACK_MESSAGE),
+      body.errors ?? [],
+      typeof retry === 'number' && Number.isFinite(retry) && retry >= 1 ? retry : undefined,
+    );
   }
 
   return res.status === 204 ? (undefined as T) : ((await res.json()) as T);

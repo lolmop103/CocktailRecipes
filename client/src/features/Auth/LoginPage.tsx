@@ -1,5 +1,7 @@
 import { useId, useState, type FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ApiError } from '@/lib/http.js';
+import { useCountdown } from './hooks/useCountdown.js';
 import { useLogin } from './hooks/useSession.js';
 import { loginErrorMessage, safeReturnTo } from './loginForm.js';
 
@@ -11,6 +13,8 @@ export const LoginPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const id = useId();
+  const retryAfter = login.error instanceof ApiError ? login.error.retryAfterSeconds : undefined;
+  const remaining = useCountdown(retryAfter, login.error);
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -47,10 +51,21 @@ export const LoginPage = () => {
         />
         {login.isError && (
           <p role="alert" className="login-form__error">
-            {loginErrorMessage(login.error)}
+            {remaining > 0 ? (
+              <>
+                <span className="login-form__announce">{loginErrorMessage(login.error)}</span>
+                <span aria-hidden="true">Too many attempts — try again in {remaining} s</span>
+              </>
+            ) : (
+              loginErrorMessage(login.error)
+            )}
           </p>
         )}
-        <button type="submit" className="btn-add-recipe" disabled={login.isPending}>
+        <button
+          type="submit"
+          className="btn-add-recipe"
+          disabled={login.isPending || remaining > 0}
+        >
           Log in
         </button>
       </form>

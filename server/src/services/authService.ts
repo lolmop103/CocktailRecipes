@@ -1,8 +1,10 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { env } from '../config/env.js';
 import { sessionStore } from '../data/sessionStore.js';
+import { logger } from '../lib/logger.js';
+import { loginThrottle } from '../lib/loginThrottle.js';
 import { verifyPassword } from '../lib/password.js';
-import { ServiceUnavailableError, UnauthorizedError } from '../lib/errors.js';
+import { ServiceUnavailableError, TooManyRequestsError, UnauthorizedError } from '../lib/errors.js';
 
 const TOKEN_BYTES = 32;
 const DAY_MS = 86_400_000;
@@ -40,10 +42,30 @@ export const authService = {
       throw new ServiceUnavailableError('Admin login is not configured');
     }
 
+    const admission = loginThrottle.admit(now);
+    if (!admission.ok) {
+      // One line per window, and no client data: the throttle is global.
+      if (admission.firstRefusal) {
+        logger.warn('Login refused during cooldown', {
+          retryAfterSeconds: admission.retryAfterSeconds,
+        });
+      }
+      throw new TooManyRequestsError(
+        'Too many attempts — try again shortly',
+        admission.retryAfterSeconds,
+      );
+    }
+
     const passwordOk = await verifyPassword(password, ADMIN_PASSWORD_HASH);
     if (!sameText(username, ADMIN_USERNAME) || !passwordOk) {
+      // Counts only: never the address, the typed username or password, or which one was wrong.
+      logger.warn('Login failed', {
+        consecutiveFailures: admission.failures,
+        cooldownSeconds: admission.cooldownSeconds,
+      });
       throw new UnauthorizedError('Wrong username or password');
     }
+    loginThrottle.succeed();
 
     const maxAgeMs = SESSION_TTL_DAYS * DAY_MS;
     const token = randomBytes(TOKEN_BYTES).toString('base64url');

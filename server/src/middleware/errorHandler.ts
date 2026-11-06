@@ -1,7 +1,7 @@
 import { type NextFunction, type Request, type Response } from 'express';
 import { isHttpError } from 'http-errors';
 import type { ApiErrorBody } from '@cocktail/shared';
-import { isAppError, ValidationError } from '../lib/errors.js';
+import { isAppError, TooManyRequestsError, ValidationError } from '../lib/errors.js';
 import { logger } from '../lib/logger.js';
 
 function bodyFor(err: unknown): ApiErrorBody | undefined {
@@ -10,6 +10,7 @@ function bodyFor(err: unknown): ApiErrorBody | undefined {
       status: err.status,
       message: err.message,
       ...(err instanceof ValidationError ? { errors: err.errors } : {}),
+      ...(err instanceof TooManyRequestsError ? { retryAfterSeconds: err.retryAfterSeconds } : {}),
     };
   }
   if (isHttpError(err)) {
@@ -20,6 +21,13 @@ function bodyFor(err: unknown): ApiErrorBody | undefined {
 
 export function errorHandler(err: unknown, req: Request, res: Response, _next: NextFunction): void {
   const known = bodyFor(err);
+
+  if (err instanceof TooManyRequestsError && known) {
+    // Expected during a cooldown; authService writes a single log line per window.
+    res.set('Retry-After', String(err.retryAfterSeconds));
+    res.status(known.status).json(known);
+    return;
+  }
 
   if (known) {
     if (known.status >= 500) {

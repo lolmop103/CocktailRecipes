@@ -21,6 +21,9 @@ export function safeReturnTo(value: string | null): string {
   }
 }
 
+/** Shown for a 429 that carries no message (for example a proxy's HTML page). */
+export const TOO_MANY_ATTEMPTS = 'Too many attempts. Try again in a moment.';
+
 /** The line shown under the login form for a failed attempt. */
 export function loginErrorMessage(error: unknown): string {
   if (!(error instanceof ApiError)) return 'Could not log in. Try again.';
@@ -28,7 +31,7 @@ export function loginErrorMessage(error: unknown): string {
     case 401:
       return 'Wrong username or password';
     case 429:
-      return error.message;
+      return error.message || TOO_MANY_ATTEMPTS;
     case 503:
       return 'Admin login is not configured';
     default:

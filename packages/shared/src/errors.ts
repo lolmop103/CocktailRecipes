@@ -12,4 +12,6 @@ export interface ApiErrorBody {
   status: number;
   message: string;
   errors?: FieldError[];
+  /** Whole seconds until a refused request may be retried (429 only). */
+  retryAfterSeconds?: number;
 }

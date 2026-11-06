@@ -44,7 +44,6 @@ export function createApp(): Express {
   // Per-IP limits, before any body is parsed so a refused request costs little.
   const limits = createRateLimiters();
   app.use(API_PREFIX, limits.read, limits.write);
-  app.use(`${API_PREFIX}/auth/login`, limits.loginFailures);
 
   // Parsing
   // The largest valid recipe is well under this; anything bigger is refused with a 413.
