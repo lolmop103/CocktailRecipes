@@ -50,3 +50,15 @@ export class ServiceUnavailableError extends AppError {
 export class ForbiddenError extends AppError {
   readonly status = 403;
 }
+
+/** The server refuses to try right now; the caller may retry after the given seconds. */
+export class TooManyRequestsError extends AppError {
+  readonly status = 429;
+
+  constructor(
+    message: string,
+    readonly retryAfterSeconds: number,
+  ) {
+    super(message);
+  }
+}

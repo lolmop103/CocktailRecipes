@@ -3,7 +3,12 @@ import type { NextFunction, Request, Response } from 'express';
 import createError from 'http-errors';
 import { z } from 'zod';
 import { errorHandler } from '../src/middleware/errorHandler.js';
-import { AppError, NotFoundError, ValidationError } from '../src/lib/errors.js';
+import {
+  AppError,
+  NotFoundError,
+  TooManyRequestsError,
+  ValidationError,
+} from '../src/lib/errors.js';
 import { parseOrThrow } from '../src/lib/validation.js';
 import { logger } from '../src/lib/logger.js';
 
@@ -14,6 +19,7 @@ class UpstreamError extends AppError {
 function run(err: unknown) {
   const res = {
     status: vi.fn().mockReturnThis(),
+    set: vi.fn().mockReturnThis(),
     json: vi.fn().mockReturnThis(),
   };
   const req = { method: 'GET', path: '/api/test' } as Request;
@@ -116,6 +122,20 @@ describe('errorHandler', () => {
       'Unhandled error',
       expect.objectContaining({ error: 'a bare string', stack: undefined }),
     );
+  });
+
+  it('tooManyRequests_429WithRetryAfterBodyAndHeader_noLogLine', () => {
+    const res = run(new TooManyRequestsError('Slow down', 12));
+
+    expect(res.status).toHaveBeenCalledWith(429);
+    expect(res.set).toHaveBeenCalledWith('Retry-After', '12');
+    expect(res.json).toHaveBeenCalledWith({
+      status: 429,
+      message: 'Slow down',
+      retryAfterSeconds: 12,
+    });
+    expect(logWarn).not.toHaveBeenCalled();
+    expect(logError).not.toHaveBeenCalled();
   });
 });
 

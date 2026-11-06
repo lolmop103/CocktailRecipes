@@ -6,6 +6,9 @@ import { authService } from '../src/services/authService.js';
 import { env } from '../src/config/env.js';
 import { db } from '../src/data/connection.js';
 import { adminAgent, TEST_ADMIN } from './helpers/admin.js';
+import * as passwordLib from '../src/lib/password.js';
+import { loginThrottle } from '../src/lib/loginThrottle.js';
+import { UnauthorizedError, TooManyRequestsError } from '../src/lib/errors.js';
 
 const app = createApp();
 const ORIGIN = 'http://localhost:5173';
@@ -165,5 +168,126 @@ describe('session revocation', () => {
     env.ADMIN_PASSWORD_HASH = original;
 
     expect(after.body).toEqual({ authenticated: false });
+  });
+});
+
+const WRONG = { ...TEST_ADMIN, password: 'not-the-password' };
+
+describe('login throttle over HTTP', () => {
+  // A fresh app per test keeps the per-IP limiter (removed in Task 3) out of the way.
+  let fresh = createApp();
+  const login = (body: Record<string, unknown>, origin = ORIGIN) =>
+    request(fresh).post('/api/auth/login').set('Origin', origin).send(body);
+
+  beforeEach(() => {
+    fresh = createApp();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('login_afterThreeWrong_fourthRefusedWith429EvenWithCorrectPassword', async () => {
+    for (let i = 0; i < 3; i += 1) expect((await login(WRONG)).status).toBe(401);
+
+    const res = await login(TEST_ADMIN);
+
+    expect(res.status).toBe(429);
+    expect(res.body.status).toBe(429);
+    expect(typeof res.body.message).toBe('string');
+    const seconds = res.body.retryAfterSeconds as number;
+    expect(Number.isInteger(seconds)).toBe(true);
+    expect(seconds).toBeGreaterThanOrEqual(1);
+    expect(seconds).toBeLessThanOrEqual(30);
+    expect(res.headers['retry-after']).toBe(String(seconds));
+    expect(Buffer.byteLength(res.text)).toBeLessThanOrEqual(200);
+    expect((await login(TEST_ADMIN)).status).toBe(429);
+  });
+
+  it('login_400And403_doNotCountTowardTheThrottle', async () => {
+    for (let i = 0; i < 2; i += 1) expect((await login(WRONG)).status).toBe(401);
+    for (let i = 0; i < 5; i += 1) {
+      expect((await login({ username: '' })).status).toBe(400);
+      expect((await login(WRONG, 'http://evil.example')).status).toBe(403);
+    }
+
+    expect((await login(WRONG)).status).toBe(401);
+    expect((await login(TEST_ADMIN)).status).toBe(429);
+  });
+
+  it('login_correctOnThirdAttempt_resetsTheCount', async () => {
+    for (let i = 0; i < 2; i += 1) await login(WRONG);
+    expect((await login(TEST_ADMIN)).status).toBe(204);
+
+    for (let i = 0; i < 3; i += 1) expect((await login(WRONG)).status).toBe(401);
+  });
+
+  it('login_afterTheCooldown_correctPasswordGives204', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));
+    for (let i = 0; i < 3; i += 1) await login(WRONG);
+    expect((await login(TEST_ADMIN)).status).toBe(429);
+
+    vi.setSystemTime(new Date('2026-01-01T00:00:31Z'));
+
+    expect((await login(TEST_ADMIN)).status).toBe(204);
+  });
+});
+
+describe('authService.login throttle', () => {
+  const verify = vi.spyOn(passwordLib, 'verifyPassword');
+
+  beforeEach(() => {
+    verify.mockClear();
+  });
+
+  async function messageOf(username: string, password: string): Promise<string> {
+    try {
+      await authService.login(username, password);
+    } catch (err) {
+      expect(err).toBeInstanceOf(UnauthorizedError);
+      return (err as Error).message;
+    }
+    throw new Error('expected a rejection');
+  }
+
+  it('login_wrongUsernamePasswordOrBoth_eachVerifyOnceWithIdenticalMessage', async () => {
+    const messages: string[] = [];
+    for (const [u, p] of [
+      ['someone', TEST_ADMIN.password],
+      [TEST_ADMIN.username, 'nope'],
+      ['someone', 'nope'],
+    ] as const) {
+      verify.mockClear();
+      messages.push(await messageOf(u, p));
+      expect(verify).toHaveBeenCalledTimes(1);
+      loginThrottle.reset();
+    }
+
+    expect(new Set(messages)).toEqual(new Set(['Wrong username or password']));
+  });
+
+  it('login_100Parallel_atMostThreeReachVerify', async () => {
+    const now = Date.now();
+    const results = await Promise.allSettled(
+      Array.from({ length: 100 }, () => authService.login('x', 'y', now)),
+    );
+
+    expect(verify.mock.calls.length).toBeLessThanOrEqual(3);
+    const refused = results.filter(
+      (r) => r.status === 'rejected' && r.reason instanceof TooManyRequestsError,
+    );
+    expect(refused).toHaveLength(97);
+  });
+
+  it('login_refused_verifyNeverRuns', async () => {
+    const now = Date.now();
+    for (let i = 0; i < 3; i += 1) await authService.login('x', 'y', now).catch(() => undefined);
+    verify.mockClear();
+
+    await expect(
+      authService.login(TEST_ADMIN.username, TEST_ADMIN.password, now),
+    ).rejects.toBeInstanceOf(TooManyRequestsError);
+    expect(verify).not.toHaveBeenCalled();
   });
 });
