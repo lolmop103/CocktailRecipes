@@ -18,6 +18,23 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+describe('ApiError message fallback', () => {
+  it('request_429NonJsonBodyAndEmptyStatusText_usesFixedFallback', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 429,
+        statusText: '',
+        json: () => Promise.reject(new SyntaxError('not json')),
+      }),
+    );
+    const error = (await request('/x').catch((e: unknown) => e)) as ApiError;
+    expect(error.status).toBe(429);
+    expect(error.message).toBe('Too many attempts. Try again in a moment.');
+  });
+});
+
 describe('ApiError.retryAfterSeconds', () => {
   it('request_429WithRetryAfterSeconds_exposesIt', async () => {
     const error = await failWith({ status: 429, message: 'slow', retryAfterSeconds: 30 });

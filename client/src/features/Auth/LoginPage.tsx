@@ -51,8 +51,14 @@ export const LoginPage = () => {
         />
         {login.isError && (
           <p role="alert" className="login-form__error">
-            {loginErrorMessage(login.error)}
-            {remaining > 0 && <span aria-hidden="true"> (try again in {remaining} s)</span>}
+            {remaining > 0 ? (
+              <>
+                <span className="login-form__announce">{loginErrorMessage(login.error)}</span>
+                <span aria-hidden="true">Too many attempts — try again in {remaining} s</span>
+              </>
+            ) : (
+              loginErrorMessage(login.error)
+            )}
           </p>
         )}
         <button

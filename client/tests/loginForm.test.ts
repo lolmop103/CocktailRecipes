@@ -36,6 +36,12 @@ describe('loginErrorMessage', () => {
     ).toBe('Too many requests — try again in a moment');
   });
 
+  it('loginErrorMessage_429EmptyMessage_usesNamedFallback', () => {
+    expect(loginErrorMessage(new ApiError(429, '', []))).toBe(
+      'Too many attempts. Try again in a moment.',
+    );
+  });
+
   it('loginErrorMessage_503_notConfigured', () => {
     expect(loginErrorMessage(new ApiError(503, 'x', []))).toBe('Admin login is not configured');
   });

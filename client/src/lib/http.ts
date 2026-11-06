@@ -10,6 +10,10 @@ interface ApiErrorBody {
   retryAfterSeconds?: unknown;
 }
 
+/** Used when the server sent no message and the response has no status text (HTTP/2). */
+const FALLBACK_MESSAGE = 'Request failed. Try again in a moment.';
+const RATE_LIMITED_MESSAGE = 'Too many attempts. Try again in a moment.';
+
 /** An error carrying the server's structured field errors, when it sent any. */
 export class ApiError extends Error {
   readonly status: number;
@@ -45,7 +49,9 @@ export async function request<T>(url: string, init?: RequestInit): Promise<T> {
     const retry = body.retryAfterSeconds;
     throw new ApiError(
       res.status,
-      body.message ?? res.statusText,
+      body.message ||
+        res.statusText ||
+        (res.status === 429 ? RATE_LIMITED_MESSAGE : FALLBACK_MESSAGE),
       body.errors ?? [],
       typeof retry === 'number' && Number.isFinite(retry) && retry >= 1 ? retry : undefined,
     );

@@ -89,8 +89,8 @@ describe('LoginPage', () => {
         submit();
 
         const alert = await screen.findByRole('alert');
-        expect(alert).toHaveTextContent('Too many attempts');
-        expect(alert).toHaveTextContent('try again in 30 s');
+        expect(alert).toHaveTextContent('Too many attempts — try again in 30 s');
+        expect(alert).not.toHaveTextContent('shortly');
         expect(screen.getByRole('button', { name: 'Log in' })).toBeDisabled();
 
         await act(async () => {
