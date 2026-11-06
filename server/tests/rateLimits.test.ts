@@ -85,6 +85,7 @@ describe('login is not limited per IP', () => {
         .set('Origin', TEST_ORIGIN)
         .send({ ...TEST_ADMIN, password: 'wrong-password' });
 
+      if (i < 3) expect(res.status).toBe(401);
       expect(res.body.message).not.toBe('Too many requests — try again in a moment');
     }
   });
