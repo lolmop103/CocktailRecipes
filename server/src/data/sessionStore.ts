@@ -11,12 +11,30 @@ const stmtValid = db.prepare<[string, string, number]>(
   'SELECT 1 FROM sessions WHERE token_hash = ? AND credential_tag = ? AND expires_at > ?',
 );
 const stmtRemove = db.prepare<[string]>('DELETE FROM sessions WHERE token_hash = ?');
+const stmtDeleteAll = db.prepare('DELETE FROM sessions');
+const replaceAllTx = db.transaction(
+  (tokenHash: string, credentialTag: string, createdAt: number, expiresAt: number): void => {
+    stmtDeleteAll.run();
+    stmtCreate.run(tokenHash, credentialTag, createdAt, expiresAt);
+  },
+);
 const stmtPurge = db.prepare<[number]>('DELETE FROM sessions WHERE expires_at <= ?');
 
 /** Admin sessions, keyed by the SHA-256 of the cookie token. Times are unix ms. */
 export const sessionStore = {
+  /** Adds a session without ending others; source code must use `replaceAll`. */
   create(tokenHash: string, credentialTag: string, createdAt: number, expiresAt: number): void {
     stmtCreate.run(tokenHash, credentialTag, createdAt, expiresAt);
+  },
+
+  /** Ends every session and opens this one, in one transaction: at most one row ever exists. */
+  replaceAll(tokenHash: string, credentialTag: string, createdAt: number, expiresAt: number): void {
+    replaceAllTx(tokenHash, credentialTag, createdAt, expiresAt);
+  },
+
+  /** Ends every session. */
+  removeAll(): void {
+    stmtDeleteAll.run();
   },
 
   /**
@@ -38,6 +56,6 @@ export const sessionStore = {
 
   /** Test helper: forget every session. */
   reset(): void {
-    db.exec('DELETE FROM sessions');
+    stmtDeleteAll.run();
   },
 };

@@ -41,7 +41,7 @@ const envSchema = z
       .enum(['true', 'false'])
       .default('false')
       .transform((value) => value === 'true'),
-    SESSION_TTL_DAYS: z.coerce.number().int().min(1).max(365).default(30),
+    SESSION_TTL_DAYS: z.coerce.number().int().min(1).max(365).default(14),
     /** Proxies in front of the app (the owner's Caddy is one); decides which client IP is trusted. */
     TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(5).default(0),
   })

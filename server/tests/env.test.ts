@@ -86,12 +86,12 @@ describe('env — admin and session settings', () => {
     expect(env.ADMIN_USERNAME).toBeUndefined();
   });
 
-  it('env_sessionTtlDefault_30', async () => {
+  it('env_sessionTtlDefault_14', async () => {
     vi.stubEnv('SESSION_TTL_DAYS', undefined);
 
     const { env } = await loadEnv();
 
-    expect(env.SESSION_TTL_DAYS).toBe(30);
+    expect(env.SESSION_TTL_DAYS).toBe(14);
   });
 
   it('env_sessionTtlOf400_fails', async () => {

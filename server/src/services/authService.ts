@@ -69,8 +69,7 @@ export const authService = {
 
     const maxAgeMs = SESSION_TTL_DAYS * DAY_MS;
     const token = randomBytes(TOKEN_BYTES).toString('base64url');
-    sessionStore.purgeExpired(now);
-    sessionStore.create(
+    sessionStore.replaceAll(
       tokenHash(token),
       credentialTag(ADMIN_USERNAME, ADMIN_PASSWORD_HASH),
       now,
@@ -81,6 +80,11 @@ export const authService = {
 
   logout(token: string | undefined): void {
     if (token !== undefined) sessionStore.remove(tokenHash(token));
+  },
+
+  /** Ends every session, this one included. */
+  logoutAll(): void {
+    sessionStore.removeAll();
   },
 
   /** The admin behind a session token, or undefined when it is missing or expired. */

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from 'vitest';
 import request from 'supertest';
 import type TestAgent from 'supertest/lib/agent.js';
 import { createApp } from '../src/app.js';
-import { adminAgent, TEST_ADMIN, TEST_ORIGIN } from './helpers/admin.js';
+import { TEST_ADMIN, TEST_ORIGIN } from './helpers/admin.js';
 
 const app = createApp();
 
@@ -24,12 +24,13 @@ let admin: TestAgent;
 let sessionCookie: string;
 
 beforeAll(async () => {
-  admin = await adminAgent(app);
   const login = await request(app)
     .post('/api/auth/login')
     .set('Origin', TEST_ORIGIN)
     .send(TEST_ADMIN);
   sessionCookie = String(login.headers['set-cookie']).split(';')[0] ?? '';
+  // One login only: a second one would end the first session.
+  admin = request.agent(app).set('Origin', TEST_ORIGIN).set('Cookie', sessionCookie);
 });
 
 describe('write guards', () => {

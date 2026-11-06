@@ -15,4 +15,8 @@ export const authApi = {
   logout(): Promise<void> {
     return request<void>(`${BASE}/logout`, { method: 'POST' });
   },
+
+  logoutAll(): Promise<void> {
+    return request<void>(`${BASE}/logout-all`, { method: 'POST' });
+  },
 };

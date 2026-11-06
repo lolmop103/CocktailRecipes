@@ -64,12 +64,10 @@ describe('POST /api/auth/login', () => {
     expect(stored[0]?.token_hash).toMatch(/^[0-9a-f]{64}$/);
   });
 
-  it('login_purgesExpiredSessions', async () => {
-    sessionStore.create('stale', 'any-tag', 1, 2);
+  it('login_cookieMaxAge_14Days', async () => {
+    const res = await login(TEST_ADMIN);
 
-    await login(TEST_ADMIN);
-
-    expect(sessionStore.purgeExpired(3)).toBe(0);
+    expect(String(res.headers['set-cookie'])).toContain(`Max-Age=${String(14 * 86_400)}`);
   });
 });
 
@@ -123,6 +121,67 @@ describe('GET /api/auth/me and logout', () => {
   });
 });
 
+describe('POST /api/auth/logout-all', () => {
+  const countSessions = () =>
+    (db.prepare('SELECT COUNT(*) AS n FROM sessions').get() as { n: number }).n;
+  const tokenOf = async () =>
+    /cocktail_session=([^;]+)/.exec(String((await login(TEST_ADMIN)).headers['set-cookie']))?.[1] ??
+    '';
+  const logoutAllWith = (token: string, origin = ORIGIN) =>
+    request(app)
+      .post('/api/auth/logout-all')
+      .set('Origin', origin)
+      .set('Cookie', `cocktail_session=${token}`);
+
+  it('logoutAll_withSession_204ClearsCookieAndEndsTheSession', async () => {
+    const token = await tokenOf();
+
+    const out = await logoutAllWith(token);
+    const me = await request(app).get('/api/auth/me').set('Cookie', `cocktail_session=${token}`);
+
+    expect(out.status).toBe(204);
+    expect(String(out.headers['set-cookie'])).toMatch(
+      /cocktail_session=;.*Expires=Thu, 01 Jan 1970/,
+    );
+    expect(me.body).toEqual({ authenticated: false });
+    expect(countSessions()).toBe(0);
+  });
+
+  it('logoutAll_withoutCookie_401', async () => {
+    const res = await request(app).post('/api/auth/logout-all').set('Origin', ORIGIN);
+
+    expect(res.status).toBe(401);
+  });
+
+  it('logoutAll_revokedSessionCookie_401', async () => {
+    const token = await tokenOf();
+    sessionStore.removeAll();
+
+    expect((await logoutAllWith(token)).status).toBe(401);
+  });
+
+  it('logoutAll_calledTwice_secondIs401', async () => {
+    const token = await tokenOf();
+
+    const first = await logoutAllWith(token);
+    const second = await logoutAllWith(token);
+
+    expect(first.status).toBe(204);
+    expect(second.status).toBe(401);
+  });
+
+  it('logoutAll_wrongOrigin_403AndTheSessionSurvives', async () => {
+    const token = await tokenOf();
+
+    const res = await logoutAllWith(token, 'https://evil.example');
+    const me = await request(app).get('/api/auth/me').set('Cookie', `cocktail_session=${token}`);
+
+    expect(res.status).toBe(403);
+    expect(me.body.authenticated).toBe(true);
+    expect(countSessions()).toBe(1);
+  });
+});
+
 describe('login without admin configuration', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
@@ -157,6 +216,23 @@ describe('session revocation', () => {
 
     // The token is sent explicitly: a client that kept the cookie must be refused.
     expect((await meWith(token)).body).toEqual({ authenticated: false });
+  });
+
+  it('login_again_endsTheFirstSessionOnly', async () => {
+    const first = tokenFrom(await login(TEST_ADMIN));
+    const second = tokenFrom(await login(TEST_ADMIN));
+
+    expect((await meWith(first)).body).toEqual({ authenticated: false });
+    expect((await meWith(second)).body).toMatchObject({ authenticated: true });
+  });
+
+  it('login_wrong_doesNotRevokeTheLiveSession', async () => {
+    const token = tokenFrom(await login(TEST_ADMIN));
+
+    const wrong = await login({ ...TEST_ADMIN, password: 'not-the-password' });
+
+    expect(wrong.status).toBe(401);
+    expect((await meWith(token)).body).toMatchObject({ authenticated: true });
   });
 
   it('passwordChange_endsExistingSessions', async () => {
@@ -219,6 +295,17 @@ describe('login throttle over HTTP', () => {
     expect((await login(TEST_ADMIN)).status).toBe(204);
 
     for (let i = 0; i < 3; i += 1) expect((await login(WRONG)).status).toBe(401);
+  });
+
+  it('login_refusedWith429_leavesTheLiveSessionValid', async () => {
+    const res = await login(TEST_ADMIN);
+    const token = /cocktail_session=([^;]+)/.exec(String(res.headers['set-cookie']))?.[1] ?? '';
+    for (let i = 0; i < 3; i += 1) expect((await login(WRONG)).status).toBe(401);
+    expect((await login(TEST_ADMIN)).status).toBe(429);
+
+    const me = await request(fresh).get('/api/auth/me').set('Cookie', `cocktail_session=${token}`);
+
+    expect(me.body).toMatchObject({ authenticated: true });
   });
 
   it('login_afterTheCooldown_correctPasswordGives204', async () => {
