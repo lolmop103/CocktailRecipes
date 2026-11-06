@@ -297,6 +297,17 @@ describe('login throttle over HTTP', () => {
     for (let i = 0; i < 3; i += 1) expect((await login(WRONG)).status).toBe(401);
   });
 
+  it('login_refusedWith429_leavesTheLiveSessionValid', async () => {
+    const res = await login(TEST_ADMIN);
+    const token = /cocktail_session=([^;]+)/.exec(String(res.headers['set-cookie']))?.[1] ?? '';
+    for (let i = 0; i < 3; i += 1) expect((await login(WRONG)).status).toBe(401);
+    expect((await login(TEST_ADMIN)).status).toBe(429);
+
+    const me = await request(fresh).get('/api/auth/me').set('Cookie', `cocktail_session=${token}`);
+
+    expect(me.body).toMatchObject({ authenticated: true });
+  });
+
   it('login_afterTheCooldown_correctPasswordGives204', async () => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-01-01T00:00:00Z'));

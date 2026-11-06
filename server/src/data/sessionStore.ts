@@ -22,6 +22,7 @@ const stmtPurge = db.prepare<[number]>('DELETE FROM sessions WHERE expires_at <=
 
 /** Admin sessions, keyed by the SHA-256 of the cookie token. Times are unix ms. */
 export const sessionStore = {
+  /** Adds a session without ending others; source code must use `replaceAll`. */
   create(tokenHash: string, credentialTag: string, createdAt: number, expiresAt: number): void {
     stmtCreate.run(tokenHash, credentialTag, createdAt, expiresAt);
   },

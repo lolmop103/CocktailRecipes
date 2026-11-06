@@ -182,8 +182,7 @@ containers at once).
   - List: no guard for a page with 0 items but a `nextOffset` (the server cannot
     produce one); "Showing 0 of 0" is announced before the first page; returning
     to a stale filter refetches every cached page.
-  - Login: logging in again leaves the previous session row valid; `useLogout`
-    does not refresh the list and has no error feedback.
+  - Login: `useLogout` does not refresh the list and has no error feedback.
   - Guards: `sameOrigin` exempts OPTIONS, which `cors` already answers; the
     session-expired hook reacts to every `updated` event of a failed mutation
     (N classify calls → N session refetches).

@@ -88,6 +88,8 @@ describe('sessionStore', () => {
   it('replaceAll_insertFails_deleteRolledBack', () => {
     sessionStore.replaceAll('old', TAG, NOW, NOW + HOUR);
 
+    // An object is not a bindable SQLite parameter: the insert throws after the delete ran,
+    // so the old row surviving proves the transaction rolled back.
     expect(() => sessionStore.replaceAll({} as unknown as string, TAG, NOW, NOW + HOUR)).toThrow();
 
     expect(rowCount()).toBe(1);
