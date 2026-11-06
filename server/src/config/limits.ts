@@ -7,3 +7,13 @@ const MINUTE_MS = 60_000;
 export const READ_LIMIT = { limit: 120, windowMs: MINUTE_MS } as const;
 export const WRITE_LIMIT = { limit: 60, windowMs: MINUTE_MS } as const;
 export const LOGIN_FAILURE_LIMIT = { limit: 5, windowMs: 15 * MINUTE_MS } as const;
+
+/**
+ * Global login throttle (WP4): no client key, one shared window. The first
+ * attempts are free; from the third on every admitted attempt starts a cooldown.
+ */
+export const LOGIN_THROTTLE = {
+  freeAttempts: 3,
+  cooldownMs: 30_000,
+  idleResetMs: 15 * MINUTE_MS,
+} as const;
