@@ -75,6 +75,14 @@ describe('loginThrottle', () => {
     expect(loginThrottle.admit(2 * SECOND + 500)).toMatchObject({ retryAfterSeconds: 30 });
   });
 
+  it('admit_clockStepsBackwardsDuringCooldown_waitNeverExceedsOneCooldown', () => {
+    for (const t of [100, 101, 102]) loginThrottle.admit(t * SECOND);
+    const refused = loginThrottle.admit(10 * SECOND);
+    expect(refused.ok).toBe(false);
+    if (!refused.ok) expect(refused.retryAfterSeconds).toBeLessThanOrEqual(30);
+    expect(loginThrottle.admit(41 * SECOND).ok).toBe(true);
+  });
+
   it('admit_hundredCallsAtOnce_admitsExactlyThree', () => {
     const results = Array.from({ length: 100 }, () => loginThrottle.admit(0));
     expect(results.filter((r) => r.ok)).toHaveLength(LOGIN_THROTTLE.freeAttempts);

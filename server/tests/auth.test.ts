@@ -174,7 +174,6 @@ describe('session revocation', () => {
 const WRONG = { ...TEST_ADMIN, password: 'not-the-password' };
 
 describe('login throttle over HTTP', () => {
-  // A fresh app per test keeps the per-IP limiter (removed in Task 3) out of the way.
   let fresh = createApp();
   const login = (body: Record<string, unknown>, origin = ORIGIN) =>
     request(fresh).post('/api/auth/login').set('Origin', origin).send(body);

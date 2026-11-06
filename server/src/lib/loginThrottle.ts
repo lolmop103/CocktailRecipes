@@ -32,6 +32,11 @@ function clear(): void {
 }
 
 function admit(now: number = Date.now()): Admission {
+  if (state.lastAttemptAt !== null && now < state.lastAttemptAt) {
+    // The wall clock stepped back: re-anchor so a wait never exceeds one cooldown.
+    state.lastAttemptAt = now;
+    state.blockedUntil = Math.min(state.blockedUntil, now + LOGIN_THROTTLE.cooldownMs);
+  }
   if (state.lastAttemptAt !== null && now - state.lastAttemptAt >= LOGIN_THROTTLE.idleResetMs) {
     clear();
   }

@@ -77,9 +77,9 @@ describe('write limit', () => {
 });
 
 describe('login is not limited per IP', () => {
-  it('login_tenWrongAttempts_neverAnsweredByTheIpLimiter', async () => {
+  it('login_moreWrongAttemptsThanTheWriteLimit_neverAnsweredByTheIpLimiter', async () => {
     const app = createApp();
-    for (let i = 0; i < 10; i += 1) {
+    for (let i = 0; i < WRITE_LIMIT + 5; i += 1) {
       const res = await request(app)
         .post('/api/auth/login')
         .set('Origin', TEST_ORIGIN)
