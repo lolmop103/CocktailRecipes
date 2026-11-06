@@ -1,6 +1,6 @@
 # Login and session hardening — design
 
-Date: 2026-11-05 · Status: draft for review
+Date: 2026-11-05 · Status: implemented
 
 Go-public audit of 2026-11-02, work package 4. Work packages 1 to 3 (production
 fail-safes, CSP and fonts, compose hardening) are merged.
@@ -187,3 +187,20 @@ a notification on failed logins. WP5 Branch 3 (restore drill) and WP6 to WP9.
 - The throttle is per process. A second replica would double the rate; the project
   runs one.
 - `logout-all` ends the session that calls it; the owner logs in again.
+
+## Measured
+
+Throwaway stack (production image, own compose project, temporary volume, removed
+afterwards), 2026-11-06, Docker 29.6.1 on the owner's machine:
+
+- Idle `docker stop`: exit code 0, 0.54 s wall time, log lines "Shutting down" and
+  "Shutdown complete" 7 ms apart.
+- Login throttle against the running container: wrong logins 1 to 3 answered 401, the
+  4th answered 429 with `Retry-After: 30`; one correct login 31 s later answered 204.
+- A request in flight (body still being sent) when `docker stop -t 10` was issued
+  finished with its normal response and the container exited 0. The connection it used
+  stayed open as keep-alive, so shutdown completed about 6.5 s after the signal (the
+  Node keep-alive timeout), inside the 8 s bound.
+- On this machine Docker's default stop timeout is 1 s (`StopTimeout=1`): a plain
+  `docker stop` with a request in flight ended in SIGKILL (exit 137) after 1 s. The
+  8 s grace period needs `stop_grace_period: 10s` (or `docker stop -t 10`) to apply.

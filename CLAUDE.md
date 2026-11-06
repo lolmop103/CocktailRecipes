@@ -94,7 +94,18 @@ revisit it:
 
 None.
 
-## Current status & next steps (updated 2026-11-04)
+## Current status & next steps (updated 2026-11-06)
+
+Login and session hardening (WP4, spec `2026-11-05-login-session-hardening-design.md`)
+is done: credential-bound sessions, a 14 day fixed session lifetime, one session at a
+time, "Log out everywhere", the login throttle (3 free attempts, then a 30 s window
+with `Retry-After`) and a graceful shutdown on SIGTERM and SIGINT. Remaining: WP5
+Branch 3 (the live restore drill) and WP6 to WP9. **Deploy note:** change or remove
+`SESSION_TTL_DAYS=30` in the server `.env` (the default is now 14); sessions already
+stored keep their old expiry until the next login. On this machine Docker's stop
+timeout is 1 s, not 10 s (`docker inspect` shows `StopTimeout=1`), so `docker stop`
+cuts a request that needs more than 1 s; set `stop_grace_period: 10s` where that
+matters.
 
 Go-public audit work packages (2026-11-02): WP1 (production fail-safes) and WP2
 (strict CSP, no third-party font, `robots.txt`) are done. WP3, compose hardening
