@@ -17,3 +17,6 @@ export const LOGIN_THROTTLE = {
   cooldownMs: 30_000,
   idleResetMs: 15 * MINUTE_MS,
 } as const;
+
+/** Longest a graceful shutdown may take before the process is forced to exit 1. */
+export const SHUTDOWN_FORCE_MS = 8000;
