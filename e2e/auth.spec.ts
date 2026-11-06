@@ -16,7 +16,7 @@ test('the admin logs in, creates a recipe, logs out and can no longer edit', asy
   await expect(dialog).toBeHidden();
   await expect(page.getByRole('heading', { level: 3, name: 'Admin Sour' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Log out' }).click();
+  await page.getByRole('button', { name: 'Log out', exact: true }).click();
 
   await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible();
   await expect(page.getByRole('button', { name: /^Edit / })).toHaveCount(0);
@@ -30,4 +30,14 @@ test('a write without login is refused', async ({ request, baseURL }) => {
   });
 
   expect(res.status()).toBe(401);
+});
+
+test('log out everywhere ends the session for good', async ({ page }) => {
+  await loginAsAdmin(page);
+
+  await page.getByRole('button', { name: 'Log out everywhere' }).click();
+  await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible();
+  await page.goto('/cocktails');
+
+  await expect(page.getByRole('link', { name: 'Log in' })).toBeVisible();
 });

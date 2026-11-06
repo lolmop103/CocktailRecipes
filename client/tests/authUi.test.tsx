@@ -7,7 +7,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { createTestQueryClient, renderWithProviders } from './testUtils.js';
 import { ApiError } from '../src/lib/http.js';
 
-const authApi = { me: vi.fn(), login: vi.fn(), logout: vi.fn() };
+const authApi = { me: vi.fn(), login: vi.fn(), logout: vi.fn(), logoutAll: vi.fn() };
 vi.mock('../src/features/Auth/services/authApi.js', () => ({ authApi }));
 
 const { useSession } = await import('../src/features/Auth/hooks/useSession.js');
@@ -155,5 +155,20 @@ describe('AuthHeaderButton', () => {
 
     expect(await screen.findByRole('link', { name: 'Log in' })).toBeInTheDocument();
     expect(authApi.logout).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('AuthHeaderButton logout everywhere', () => {
+  it('AuthHeaderButton_logoutEverywhere_callsApiOnceAndShowsLoginAgain', async () => {
+    authApi.me.mockResolvedValueOnce({ authenticated: true, username: 'admin' });
+    authApi.logoutAll.mockResolvedValue(undefined);
+    renderWithProviders(<AuthHeaderButton />);
+
+    expect(await screen.findByRole('button', { name: 'Log out' })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Log out everywhere' }));
+
+    expect(await screen.findByRole('link', { name: 'Log in' })).toBeInTheDocument();
+    expect(authApi.logoutAll).toHaveBeenCalledTimes(1);
+    expect(authApi.logout).not.toHaveBeenCalled();
   });
 });

@@ -28,13 +28,21 @@ export function useLogin() {
   });
 }
 
-export function useLogout() {
+const useEndSession = (end: () => Promise<void>) => {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: () => authApi.logout(),
+    mutationFn: end,
     onSuccess: async () => {
       client.setQueryData(sessionKey, { authenticated: false });
       await client.invalidateQueries({ queryKey: sessionKey });
     },
   });
+};
+
+export function useLogout() {
+  return useEndSession(() => authApi.logout());
+}
+
+export function useLogoutAll() {
+  return useEndSession(() => authApi.logoutAll());
 }

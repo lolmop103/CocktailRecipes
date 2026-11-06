@@ -121,6 +121,67 @@ describe('GET /api/auth/me and logout', () => {
   });
 });
 
+describe('POST /api/auth/logout-all', () => {
+  const countSessions = () =>
+    (db.prepare('SELECT COUNT(*) AS n FROM sessions').get() as { n: number }).n;
+  const tokenOf = async () =>
+    /cocktail_session=([^;]+)/.exec(String((await login(TEST_ADMIN)).headers['set-cookie']))?.[1] ??
+    '';
+  const logoutAllWith = (token: string, origin = ORIGIN) =>
+    request(app)
+      .post('/api/auth/logout-all')
+      .set('Origin', origin)
+      .set('Cookie', `cocktail_session=${token}`);
+
+  it('logoutAll_withSession_204ClearsCookieAndEndsTheSession', async () => {
+    const token = await tokenOf();
+
+    const out = await logoutAllWith(token);
+    const me = await request(app).get('/api/auth/me').set('Cookie', `cocktail_session=${token}`);
+
+    expect(out.status).toBe(204);
+    expect(String(out.headers['set-cookie'])).toMatch(
+      /cocktail_session=;.*Expires=Thu, 01 Jan 1970/,
+    );
+    expect(me.body).toEqual({ authenticated: false });
+    expect(countSessions()).toBe(0);
+  });
+
+  it('logoutAll_withoutCookie_401', async () => {
+    const res = await request(app).post('/api/auth/logout-all').set('Origin', ORIGIN);
+
+    expect(res.status).toBe(401);
+  });
+
+  it('logoutAll_revokedSessionCookie_401', async () => {
+    const token = await tokenOf();
+    sessionStore.removeAll();
+
+    expect((await logoutAllWith(token)).status).toBe(401);
+  });
+
+  it('logoutAll_calledTwice_secondIs401', async () => {
+    const token = await tokenOf();
+
+    const first = await logoutAllWith(token);
+    const second = await logoutAllWith(token);
+
+    expect(first.status).toBe(204);
+    expect(second.status).toBe(401);
+  });
+
+  it('logoutAll_wrongOrigin_403AndTheSessionSurvives', async () => {
+    const token = await tokenOf();
+
+    const res = await logoutAllWith(token, 'https://evil.example');
+    const me = await request(app).get('/api/auth/me').set('Cookie', `cocktail_session=${token}`);
+
+    expect(res.status).toBe(403);
+    expect(me.body.authenticated).toBe(true);
+    expect(countSessions()).toBe(1);
+  });
+});
+
 describe('login without admin configuration', () => {
   afterEach(() => {
     vi.unstubAllEnvs();

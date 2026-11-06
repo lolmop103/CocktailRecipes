@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { loginSchema, type SessionInfo } from '@cocktail/shared';
 import { env } from '../config/env.js';
 import { readCookie, sessionCookieName, sessionCookieOptions } from '../lib/cookies.js';
+import { requireAdmin } from '../middleware/requireAdmin.js';
 import { parseOrThrow } from '../lib/validation.js';
 import { authService } from '../services/authService.js';
 
@@ -25,6 +26,15 @@ authRouter.post('/login', async (req, res) => {
 authRouter.post('/logout', (req, res) => {
   const name = sessionCookieName(env.NODE_ENV);
   authService.logout(readCookie(req.get('cookie'), name));
+  const { maxAge: _maxAge, ...clearOptions } = sessionCookieOptions(env.NODE_ENV, 0);
+  res.clearCookie(name, clearOptions);
+  res.status(204).end();
+});
+
+// POST /api/auth/logout-all
+authRouter.post('/logout-all', requireAdmin, (_req, res) => {
+  authService.logoutAll();
+  const name = sessionCookieName(env.NODE_ENV);
   const { maxAge: _maxAge, ...clearOptions } = sessionCookieOptions(env.NODE_ENV, 0);
   res.clearCookie(name, clearOptions);
   res.status(204).end();

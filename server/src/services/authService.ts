@@ -82,6 +82,11 @@ export const authService = {
     if (token !== undefined) sessionStore.remove(tokenHash(token));
   },
 
+  /** Ends every session, this one included. */
+  logoutAll(): void {
+    sessionStore.removeAll();
+  },
+
   /** The admin behind a session token, or undefined when it is missing or expired. */
   sessionFor(token: string | undefined, now = Date.now()): { username: string } | undefined {
     const { ADMIN_USERNAME: username, ADMIN_PASSWORD_HASH: hash } = env;
