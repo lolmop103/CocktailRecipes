@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { screen, fireEvent, waitFor, renderHook } from '@testing-library/react';
+import { screen, fireEvent, waitFor, renderHook, act } from '@testing-library/react';
 import { QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
@@ -72,6 +72,68 @@ describe('LoginPage', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Log in' }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Wrong username or password');
+  });
+
+  describe('429 cooldown', () => {
+    const submit = () => {
+      fireEvent.change(screen.getByLabelText('Username'), { target: { value: 'admin' } });
+      fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'pw' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Log in' }));
+    };
+
+    it('LoginPage_429WithRetryAfter_countsDownAndDisablesButton', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        authApi.login.mockRejectedValue(new ApiError(429, 'Too many attempts', [], 30));
+        renderLogin('/login');
+        submit();
+
+        const alert = await screen.findByRole('alert');
+        expect(alert).toHaveTextContent('Too many attempts');
+        expect(alert).toHaveTextContent('try again in 30 s');
+        expect(screen.getByRole('button', { name: 'Log in' })).toBeDisabled();
+
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(10_000);
+        });
+        expect(screen.getByRole('alert')).toHaveTextContent('try again in 20 s');
+
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(20_000);
+        });
+        expect(screen.getByRole('button', { name: 'Log in' })).toBeEnabled();
+        expect(screen.getByRole('alert')).not.toHaveTextContent('try again in');
+        expect(authApi.login).toHaveBeenCalledTimes(1);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('LoginPage_429WithoutRetryAfter_showsMessageAndKeepsButtonEnabled', async () => {
+      authApi.login.mockRejectedValue(new ApiError(429, 'Slow down', [], undefined));
+      renderLogin('/login');
+      submit();
+
+      const alert = await screen.findByRole('alert');
+      expect(alert).toHaveTextContent('Slow down');
+      expect(alert).not.toHaveTextContent('try again in');
+      expect(screen.getByRole('button', { name: 'Log in' })).toBeEnabled();
+    });
+
+    it('LoginPage_idleMinute_makesNoAuthCall', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        renderLogin('/login');
+        const before = authApi.me.mock.calls.length;
+        await act(async () => {
+          await vi.advanceTimersByTimeAsync(60_000);
+        });
+        expect(authApi.me.mock.calls.length).toBe(before);
+        expect(authApi.login).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 });
 
