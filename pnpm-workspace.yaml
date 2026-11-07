@@ -13,8 +13,3 @@ allowBuilds:
   better-sqlite3: true
   # Postinstall only re-checks a platform binary that arrives as its own package; Vite and tsx run without it.
   esbuild: false
-
-trustPolicyExclude:
-  # undici-types@6.21.0 (via @types/node 22): 2024 release by maintainer matteo.collina on the
-  # 6.x line that predates provenance, reviewed 2026-10-28. Remove when @types/node moves to 24.
-  - undici-types@6.21.0
