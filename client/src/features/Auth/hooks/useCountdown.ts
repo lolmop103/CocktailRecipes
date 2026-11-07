@@ -8,13 +8,16 @@ const TICK_MS = 1000;
  * remain, and is cleared at 0 and on unmount.
  */
 export const useCountdown = (seconds: number | undefined, restartKey?: unknown): number => {
-  const [remaining, setRemaining] = useState(0);
+  const start =
+    seconds !== undefined && Number.isFinite(seconds) && seconds >= 1 ? Math.ceil(seconds) : 0;
+  const [remaining, setRemaining] = useState(start);
+  const [seen, setSeen] = useState({ seconds, restartKey });
 
-  useEffect(() => {
-    setRemaining(
-      seconds !== undefined && Number.isFinite(seconds) && seconds >= 1 ? Math.ceil(seconds) : 0,
-    );
-  }, [seconds, restartKey]);
+  // Restart when the inputs change: adjusted during render, so no extra committed frame.
+  if (!Object.is(seen.seconds, seconds) || !Object.is(seen.restartKey, restartKey)) {
+    setSeen({ seconds, restartKey });
+    setRemaining(start);
+  }
 
   const running = remaining > 0;
   useEffect(() => {

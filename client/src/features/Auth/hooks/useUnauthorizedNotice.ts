@@ -17,9 +17,7 @@ export function useUnauthorizedNotice(): { expired: boolean; dismiss: () => void
   const { isAdmin } = useSession();
 
   // Logging in again clears the notice.
-  useEffect(() => {
-    if (isAdmin) setExpired(false);
-  }, [isAdmin]);
+  if (isAdmin && expired) setExpired(false);
 
   useEffect(
     () =>
