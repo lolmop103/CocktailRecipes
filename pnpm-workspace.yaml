@@ -9,12 +9,12 @@ trustPolicy: no-downgrade
 
 # Dependency build scripts that may run on install; everything else is skipped.
 allowBuilds:
-  # Compiles the SQLite binding the server loads at runtime.
-  better-sqlite3: true
+  # 13.x ships prebuilt N-API binaries in its tarball and has no install script, so nothing needs to run.
+  better-sqlite3: false
   # Postinstall only re-checks a platform binary that arrives as its own package; Vite and tsx run without it.
   esbuild: false
 
-trustPolicyExclude:
-  # undici-types@6.21.0 (via @types/node 22): 2024 release by maintainer matteo.collina on the
-  # 6.x line that predates provenance, reviewed 2026-10-28. Remove when @types/node moves to 24.
-  - undici-types@6.21.0
+overrides:
+  # GHSA-g3hv-75wg-m249 (minimatch <11.0.1), reached via typescript-eslint's typescript-estree
+  # (^10.2.2, latest 8.72.1). Scoped to that parent; drop when typescript-estree needs minimatch >=11.0.1.
+  '@typescript-eslint/typescript-estree>minimatch': ^11.0.1

@@ -20,7 +20,7 @@ Stack: Node.js · Express 5 · React 19 · TypeScript 5 · Vite 8 · Vitest 5 ·
 | E2E        | Playwright (Chromium)   | ^1.63   |
 | Linting    | ESLint + @e18e plugin   | ^9      |
 | Formatting | Prettier                | ^3      |
-| Database   | SQLite (better-sqlite3) | ^12     |
+| Database   | SQLite (better-sqlite3) | ^13     |
 
 ---
 

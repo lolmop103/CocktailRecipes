@@ -86,13 +86,12 @@ revisit it:
 | ------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
 | `typescript`                    | below 6.1     | `typescript-eslint` 8.71 peers `typescript >=4.8.4 <6.1.0`, so TypeScript 7 is out (checked 2026-10-15). 6.0 is in range and is its own major-upgrade PR                     | `typescript-eslint` accepts TS 7                                             |
 | `eslint`, `@eslint/js`          | 9             | `eslint-plugin-jsx-a11y` 6.10.2 peers `eslint ^3 … ^9`, so ESLint 10 is out (checked 2026-10-15)                                                                             | `eslint-plugin-jsx-a11y` accepts ESLint 10                                   |
-| `@types/node`                   | 22            | The move to Node 24 (2026-10-30) kept every resolved version; the types follow in the next deps PR                                                                           | the next `chore/deps-<date>` PR                                              |
 | `vitest`, `@vitest/coverage-v8` | exactly 5.0.4 | 5.0.5 changed the `Assertion` type so `@testing-library/jest-dom/vitest` no longer augments it; client `tsc` and lint fail on every `toBeInTheDocument` (checked 2026-10-16) | a `vitest` or `@testing-library/jest-dom` release restores the matcher types |
 | `@vitest/eslint-plugin`         | 1.6.27        | 1.6.28 added a peer `typescript >=6.0.0`, which the `typescript` hold rules out (checked 2026-10-28)                                                                         | the project moves to TypeScript 6                                            |
 
 ## Security exceptions
 
-None.
+None. One override instead of an exception: `pnpm-workspace.yaml` pins `@typescript-eslint/typescript-estree>minimatch` to `^11.0.1` for GHSA-g3hv-75wg-m249 (moderate DoS in minimatch <11.0.1; the latest typescript-eslint 8.72.1 still asks `^10.2.2` and is capped by the TypeScript hold). Dev tooling only. Revisit when: `typescript-estree` depends on minimatch >=11.0.1, then drop the override.
 
 ## Current status & next steps (updated 2026-11-06)
 
@@ -174,10 +173,13 @@ containers at once).
   ≤ 5 ms) measured 2.6–3.5 ms in the morning and 8–10 ms in the afternoon of
   2026-10-16 on unchanged code (the machine itself slowed). If it misses on the
   VPS: skip the COUNT on later pages, or loosen the row with a reason.
-- **Dependencies (2026-10-16):** `pnpm audit` clean. Major PRs to weigh:
-  `concurrently` 10, `better-sqlite3` 13 (+ `@types/better-sqlite3` 9),
-  `eslint-plugin-react-hooks` 7, `globals` 17, `@types/supertest` 7,
-  TypeScript 6.0, GitHub Actions v4 → v7.
+- **Dependencies (2026-11-06):** `pnpm audit` clean (minimatch override, see Security
+  exceptions). Done in `chore/deps-2026-11-06`: `concurrently` 10, `better-sqlite3` 13 (+
+  `@types/better-sqlite3` 9), `globals` 17, `@types/supertest` 7, `@types/node` 24. Remaining:
+  `eslint-plugin-react-hooks` 7 (its recommended preset adds `set-state-in-effect`, which
+  flags 4 setState-in-effect calls in `useCountdown`, `useUnauthorizedNotice` and
+  `useListboxKeyboard`: refactor those hooks, or limit the preset to the two classic rules, then
+  bump), TypeScript 6.0, GitHub Actions v4 → v7.
 - The Vite dev proxy target is hard-coded to port 3000 instead of following
   `PORT`.
 - `.gitignore` lists `.github/skills/`, yet `react-components/SKILL.md` is
