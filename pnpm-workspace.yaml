@@ -9,7 +9,7 @@ trustPolicy: no-downgrade
 
 # Dependency build scripts that may run on install; everything else is skipped.
 allowBuilds:
-  # Compiles the SQLite binding the server loads at runtime.
+  # The SQLite binding the server loads at runtime; 13.x ships prebuilt binaries, so this is only a fallback build.
   better-sqlite3: true
   # Postinstall only re-checks a platform binary that arrives as its own package; Vite and tsx run without it.
   esbuild: false
