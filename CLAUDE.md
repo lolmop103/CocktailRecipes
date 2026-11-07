@@ -173,10 +173,13 @@ containers at once).
   ≤ 5 ms) measured 2.6–3.5 ms in the morning and 8–10 ms in the afternoon of
   2026-10-16 on unchanged code (the machine itself slowed). If it misses on the
   VPS: skip the COUNT on later pages, or loosen the row with a reason.
-- **Dependencies (2026-10-16):** `pnpm audit` clean. Major PRs to weigh:
-  `concurrently` 10, `better-sqlite3` 13 (+ `@types/better-sqlite3` 9),
-  `eslint-plugin-react-hooks` 7, `globals` 17, `@types/supertest` 7,
-  TypeScript 6.0, GitHub Actions v4 → v7.
+- **Dependencies (2026-11-06):** `pnpm audit` clean (minimatch override, see Security
+  exceptions). Done in `chore/deps-2026-11-06`: `concurrently` 10, `better-sqlite3` 13 (+
+  `@types/better-sqlite3` 9), `globals` 17, `@types/supertest` 7, `@types/node` 24. Remaining:
+  `eslint-plugin-react-hooks` 7 (its recommended preset adds `set-state-in-effect`, which
+  flags 4 setState-in-effect calls in `useCountdown`, `useUnauthorizedNotice` and
+  `useListboxKeyboard`: refactor those hooks, or limit the preset to the two classic rules, then
+  bump), TypeScript 6.0, GitHub Actions v4 → v7.
 - The Vite dev proxy target is hard-coded to port 3000 instead of following
   `PORT`.
 - `.gitignore` lists `.github/skills/`, yet `react-components/SKILL.md` is
