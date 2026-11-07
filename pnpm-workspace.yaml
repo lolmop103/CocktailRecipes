@@ -13,3 +13,8 @@ allowBuilds:
   better-sqlite3: true
   # Postinstall only re-checks a platform binary that arrives as its own package; Vite and tsx run without it.
   esbuild: false
+
+overrides:
+  # GHSA-g3hv-75wg-m249 (minimatch <11.0.1), reached via typescript-eslint's typescript-estree
+  # (^10.2.2, latest 8.72.1). Scoped to that parent; drop when typescript-estree needs minimatch >=11.0.1.
+  '@typescript-eslint/typescript-estree>minimatch': ^11.0.1

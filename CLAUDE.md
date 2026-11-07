@@ -91,7 +91,7 @@ revisit it:
 
 ## Security exceptions
 
-None.
+None. One override instead of an exception: `pnpm-workspace.yaml` pins `@typescript-eslint/typescript-estree>minimatch` to `^11.0.1` for GHSA-g3hv-75wg-m249 (moderate DoS in minimatch <11.0.1; the latest typescript-eslint 8.72.1 still asks `^10.2.2` and is capped by the TypeScript hold). Dev tooling only. Revisit when: `typescript-estree` depends on minimatch >=11.0.1, then drop the override.
 
 ## Current status & next steps (updated 2026-11-06)
 
