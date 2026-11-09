@@ -17,8 +17,13 @@ export function useListboxKeyboard({ itemCount, isOpen, onSelect, onClose }: Opt
 
   // Keep the highlight in range as the filtered list shrinks or the list closes.
   // Adjusted during render, so the stale index is never committed.
-  if (!isOpen && activeIndex !== -1) setActiveIndex(-1);
-  else if (activeIndex >= itemCount) setActiveIndex(itemCount - 1);
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    if (!isOpen) setActiveIndex(-1);
+  } else if (activeIndex >= itemCount) {
+    setActiveIndex(itemCount - 1);
+  }
 
   const onKeyDown = useCallback(
     (event: React.KeyboardEvent) => {

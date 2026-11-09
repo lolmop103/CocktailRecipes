@@ -119,6 +119,18 @@ describe('useListboxKeyboard', () => {
     expect(result.current.activeIndex).toBe(0);
   });
 
+  it('keyPressWhileClosed_isNotCancelled_untilTheNextOpenToClosedChange', () => {
+    const { result, rerender, onSelect, onClose } = setup({ isOpen: false });
+
+    act(() => result.current.onKeyDown(key('ArrowDown')));
+    expect(result.current.activeIndex).toBe(0);
+
+    rerender({ itemCount: 3, isOpen: true, onSelect, onClose });
+    expect(result.current.activeIndex).toBe(0);
+    rerender({ itemCount: 3, isOpen: false, onSelect, onClose });
+    expect(result.current.activeIndex).toBe(-1);
+  });
+
   it('clearsTheHighlight_whenClosed', () => {
     const { result, rerender, onSelect, onClose } = setup();
 

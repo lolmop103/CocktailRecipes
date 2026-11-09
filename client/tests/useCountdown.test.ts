@@ -37,6 +37,31 @@ describe('useCountdown', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  it('useCountdown_sameSecondsNewRestartKey_restartsFromTheTop', () => {
+    vi.useFakeTimers();
+    const { result, rerender } = renderHook(({ k }) => useCountdown(3, k), {
+      initialProps: { k: 'a' },
+    });
+    expect(result.current).toBe(3);
+    act(() => void vi.advanceTimersByTime(2000));
+    expect(result.current).toBe(1);
+    rerender({ k: 'b' });
+    expect(result.current).toBe(3);
+  });
+
+  it('useCountdown_secondsDropsBelowOne_stopsAtZero', () => {
+    vi.useFakeTimers();
+    const { result, rerender } = renderHook<number, { s: number | undefined }>(
+      ({ s }) => useCountdown(s),
+      {
+        initialProps: { s: 4 },
+      },
+    );
+    expect(result.current).toBe(4);
+    rerender({ s: undefined });
+    expect(result.current).toBe(0);
+  });
+
   it('useCountdown_newValue_restarts', () => {
     vi.useFakeTimers();
     const { result, rerender } = renderHook(({ s }) => useCountdown(s), {
