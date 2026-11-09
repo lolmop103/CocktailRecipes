@@ -23,6 +23,8 @@ export default tseslint.config(
     },
   },
 
+  reactHooks.configs.flat.recommended,
+
   {
     languageOptions: {
       parserOptions: {
@@ -32,11 +34,9 @@ export default tseslint.config(
       globals: globals.browser,
     },
     plugins: {
-      'react-hooks': reactHooks,
       'jsx-a11y': jsxA11y,
     },
     rules: {
-      ...reactHooks.configs.recommended.rules,
       ...jsxA11y.flatConfigs.recommended.rules,
 
       'no-console': 'error',

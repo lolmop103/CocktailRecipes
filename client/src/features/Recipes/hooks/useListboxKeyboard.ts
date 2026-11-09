@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 
 interface Options {
   itemCount: number;
@@ -16,13 +16,14 @@ export function useListboxKeyboard({ itemCount, isOpen, onSelect, onClose }: Opt
   const [activeIndex, setActiveIndex] = useState(-1);
 
   // Keep the highlight in range as the filtered list shrinks or the list closes.
-  useEffect(() => {
-    setActiveIndex((current) => (current >= itemCount ? itemCount - 1 : current));
-  }, [itemCount]);
-
-  useEffect(() => {
+  // Adjusted during render, so the stale index is never committed.
+  const [wasOpen, setWasOpen] = useState(isOpen);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
     if (!isOpen) setActiveIndex(-1);
-  }, [isOpen]);
+  } else if (activeIndex >= itemCount) {
+    setActiveIndex(itemCount - 1);
+  }
 
   const onKeyDown = useCallback(
     (event: React.KeyboardEvent) => {

@@ -175,11 +175,9 @@ containers at once).
   VPS: skip the COUNT on later pages, or loosen the row with a reason.
 - **Dependencies (2026-11-06):** `pnpm audit` clean (minimatch override, see Security
   exceptions). Done in `chore/deps-2026-11-06`: `concurrently` 10, `better-sqlite3` 13 (+
-  `@types/better-sqlite3` 9), `globals` 17, `@types/supertest` 7, `@types/node` 24. Remaining:
-  `eslint-plugin-react-hooks` 7 (its recommended preset adds `set-state-in-effect`, which
-  flags 4 setState-in-effect calls in `useCountdown`, `useUnauthorizedNotice` and
-  `useListboxKeyboard`: refactor those hooks, or limit the preset to the two classic rules, then
-  bump), TypeScript 6.0, GitHub Actions v4 → v7.
+  `@types/better-sqlite3` 9), `globals` 17, `@types/supertest` 7, `@types/node` 24. Done in `chore/deps-leftovers-2026-11-07`: `eslint-plugin-react-hooks` 7 with its full recommended
+  preset (`useCountdown`, `useUnauthorizedNotice` and `useListboxKeyboard` now adjust state during
+  render instead of in effects). Remaining: TypeScript 6.0, GitHub Actions v4 → v7.
 - The Vite dev proxy target is hard-coded to port 3000 instead of following
   `PORT`.
 - `.gitignore` lists `.github/skills/`, yet `react-components/SKILL.md` is

@@ -4,9 +4,6 @@
 # ---------------------------------------------------------------------------
 FROM node:24-alpine AS builder
 
-# Needed to compile the better-sqlite3 native module.
-RUN apk add --no-cache python3 make g++
-
 # Corepack reads `packageManager` from package.json, so the pnpm version is
 # typed in one place only.
 RUN corepack enable
@@ -30,13 +27,17 @@ RUN pnpm --filter @cocktail/shared build
 RUN pnpm --filter cocktail-client build
 RUN pnpm --filter cocktail-server build
 
-# The server's production dependencies only (better-sqlite3 already compiled,
-# @cocktail/shared with its built dist), without the dev tools or the other
+# The server's production dependencies only (better-sqlite3 with its prebuilt
+# binaries, @cocktail/shared with its built dist), without the dev tools or the other
 # workspaces' dependencies.
 RUN pnpm --filter cocktail-server deploy --prod /deploy
 
+# better-sqlite3 ships a prebuilt binary per platform; the runner is Alpine (musl), so
+# drop the glibc, macOS and Windows ones. Both musl architectures stay.
+RUN find /deploy/node_modules/better-sqlite3/prebuilds -name '*.node' ! -name 'linuxmusl-*' -delete
+
 # ---------------------------------------------------------------------------
-# Stage 2: runner — no compiler toolchain, no dev dependencies
+# Stage 2: runner — production dependencies only, no dev tools
 # ---------------------------------------------------------------------------
 FROM node:24-alpine AS runner
 

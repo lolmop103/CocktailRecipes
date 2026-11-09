@@ -17,9 +17,13 @@ export function useUnauthorizedNotice(): { expired: boolean; dismiss: () => void
   const { isAdmin } = useSession();
 
   // Logging in again clears the notice.
-  useEffect(() => {
+  // Only the moment the admin appears counts: the 401 handler raises the notice while the
+  // cached session still says admin, and the refetch that ends it arrives later.
+  const [wasAdmin, setWasAdmin] = useState(isAdmin);
+  if (isAdmin !== wasAdmin) {
+    setWasAdmin(isAdmin);
     if (isAdmin) setExpired(false);
-  }, [isAdmin]);
+  }
 
   useEffect(
     () =>
