@@ -208,14 +208,14 @@ Values the owner has not decided are placeholders.
   - `LOG_LEVEL=info`, `CADDY_NETWORK` (the kit sets it to `edge`);
   - set by the compose itself: `NODE_ENV`, `PORT`, `DATA_DIR`.
 - **Volumes and data:** the named volume `cocktail-prod-db` at `/data`: `cocktail.db`
-  plus its write-ahead log. Small (the database of the measured run, 1000 recipes, is
-  a few MB); it only grows with recipes. The only writable places in the container are
+  plus its write-ahead log. Small (the measured run had 1000 recipes; check on real data after
+  launch); it only grows with recipes. The only writable places in the container are
   `/data` and a 16 MB `/tmp`.
 - **Resource limits:** memory 128m with no swap (peak 80 MB measured), 1 CPU (3.9 % of a
   core on average, 1.14 in a flood), 128 pids (peak 23). Starting values from a measured
   run on small data; the kit reports real values back.
-- **Health endpoint:** `GET /api/health`, 200 when the app is up; expected under about
-  30 ms (p95 15-28 ms during a single-IP flood).
+- **Health endpoint:** `GET /api/health`, 200 when the app is up; expected well under 100 ms
+  (p95 15-28 ms during a single-IP flood, measured 2026-10-16).
 - **Backup job and restore check:** the snapshot command
   `node server/dist/scripts/snapshot.js` writes one consistent `cocktail.db` to
   `/data/snapshots/` while the app runs. Backup member: `cocktail.db`. `/data/snapshots`
@@ -224,7 +224,7 @@ Values the owner has not decided are placeholders.
   drill are the kit's, running BinMark's `infra/backup` scripts; they depend on
   BinMark's kit request R1 (a CocktailRecipes member is optional there).
 - **Scheduled jobs:** n/a — the app has none; the snapshot is run by the kit's backup job.
-- **Must NOT be exposed:** port 3000, `/data` and `/data/snapshots`, the `.env` file.
+- **Must NOT be exposed:** to the public: port 3000, `/data` and `/data/snapshots` (only the backup job reads the latter), the `.env` file.
 - **Startup and shutdown:** the container restarts by itself (`restart: unless-stopped`)
   and runs migrations at start. On SIGTERM the app finishes in-flight requests, with a
   force timer at 8 s; `stop_grace_period` is 10 s. A deploy swap is a short restart
