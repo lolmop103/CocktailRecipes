@@ -15,6 +15,9 @@ publishes no port of its own and is reached only over a shared Docker network.
 visitor ──HTTPS──▶ Caddy ──http://cocktail:3000──▶ app container ──▶ SQLite (volume cocktail-prod-db)
 ```
 
+On the shared edge the upstream is the alias `cocktailrecipes-cocktail:3000` instead
+(see "Server needs"); `cocktail` is the name for a Caddy you run yourself.
+
 ## Prerequisites
 
 - Docker with Compose v2 on the VPS.
@@ -194,8 +197,8 @@ Values the owner has not decided are placeholders.
 - **Ports and exposure:** the `cocktail` service listens on 3000 inside the container.
   Internal only: no published port; the edge reaches it over the shared Docker network.
 - **Domain:** one hostname, routed to `cocktailrecipes-cocktail:3000`, the service's alias on the shared
-  network (placeholder `COCKTAIL_DOMAIN`,
-  supplied by the kit; no domain is written in this repository).
+  network (placeholder `COCKTAIL_DOMAIN`, supplied by the kit; no domain is written in
+  this repository).
 - **Env vars** (template: `.env.example`; real values only on the server):
   - secret: `ADMIN_PASSWORD_HASH` (scrypt hash made with `hash-password`), delivered
     through the compose `env_file`;
