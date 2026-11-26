@@ -54,7 +54,7 @@ docker build -t cocktail . && docker run -p 3105:3000 cocktail   # image smoke t
 - **GitHub CLI:** `gh` (account `lolmop103`); if it is not on the PATH, call
   `C:\Program Files\GitHub CLI\gh.exe`. PRs go into `develop`.
 - **Node 24 and pnpm 12 everywhere** (local, CI, Docker `node:24-alpine`);
-  `engines.node` is `>=24 <25`. `@types/node` is still 22 (see the holds below).
+  `engines.node` is `>=24 <25`; `@types/node` is 24.
   Install pnpm with `npm install -g pnpm@12.15.0`, not the standalone binary;
   `npm install` in this repository stops with an error on purpose.
 - **Port 3000 is taken** by another Node process on this machine. `pnpm dev`
@@ -93,15 +93,21 @@ revisit it:
 
 None. One override instead of an exception: `pnpm-workspace.yaml` pins `@typescript-eslint/typescript-estree>minimatch` to `^11.0.1` for GHSA-g3hv-75wg-m249 (moderate DoS in minimatch <11.0.1; the latest typescript-eslint 8.72.1 still asks `^10.2.2` and is capped by the TypeScript hold). Dev tooling only. Revisit when: `typescript-estree` depends on minimatch >=11.0.1, then drop the override.
 
-## Current status & next steps (updated 2026-11-06)
+## Current status & next steps (updated 2026-11-26)
 
-Login and session hardening (WP4, spec `2026-11-05-login-session-hardening-design.md`)
-is done: credential-bound sessions, a 14 day fixed session lifetime, one session at a
-time, "Log out everywhere", the login throttle (3 free attempts, then a 30 s window
-with `Retry-After`) and a graceful shutdown on SIGTERM and SIGINT. Remaining: WP5
-Branch 3 (the live restore drill) and WP6 to WP9. **Deploy note:** change or remove
-`SESSION_TTL_DAYS=30` in the server `.env` (the default is now 14); sessions already
-stored keep their old expiry until the next login. On this machine Docker's stop
+The work-package numbers (WP1 to WP9) are those of BinMark's
+`docs/security-work-packages.md`. Login and session hardening (WP4, spec
+`2026-11-05-login-session-hardening-design.md`) is done: credential-bound sessions, a
+14 day fixed session lifetime, one session at a time, "Log out everywhere", the login
+throttle (3 free attempts, then a 30 s window with `Retry-After`) and a graceful
+shutdown on SIGTERM and SIGINT. WP9 (GDPR) does not apply here. What remains for the
+first deploy is server work, done by server-ops-kit once the VPS exists: WP5 Branch 3
+(the live restore drill), WP6 (baseline), WP7 (host backups and drill) and WP8 (the
+shared edge); the app side is its requests R1 to R5 (`docs/requests/cocktailrecipes.md`
+in that repository), worked through here in small PRs. `docs/deploy.md` carries the
+"Server needs" section. **Deploy note:** remove any `SESSION_TTL_DAYS=30` from the
+server env (the default is now 14); sessions already stored keep their old expiry
+until the next login. On this machine Docker's stop
 timeout is 1 s, not 10 s (`docker inspect` shows `StopTimeout=1`), so `docker stop`
 cuts a request that needs more than 1 s; `compose.prod.yaml` sets
 `stop_grace_period: 10s` on the `cocktail` service for that reason.
@@ -114,8 +120,8 @@ bounded logs and measured limits (128m memory without swap, 1 CPU, 128 processes
 the numbers are in the spec and `docs/deploy.md`, to be rechecked on real data
 after launch. Backups (spec `2026-11-04-backups-design.md`, plan
 `2026-11-04-backups.md`): Branch 1 (the snapshot command here) and Branch 2 (the
-backup scripts in BinMark) are merged. The host install, the live restore drill
-(WP7) and package-security rows 6-9 wait for the VPS.
+backup scripts in BinMark) are merged. The host install and the live restore drill
+(WP7) wait for the VPS.
 
 Since 2026-11-03 a production server refuses to start without an explicit
 `TRUST_PROXY_HOPS` (0 = no proxy, 1 = Caddy, 2 = Cloudflare and Caddy) and
@@ -156,16 +162,15 @@ container behind BinMark's local edge, for a demo on the home network (README,
 "Show it on your network"). It needs BinMark's `sites-local/cocktailrecipes-test.caddy`
 (BinMark PR #61).
 
-**Next, after the manual test pass: automatic deploys** (designed 2026-10-23, no
-spec yet). A release on `main` deploys only this app: the release job runs
-`deploy cocktailrecipes <tag>` over SSH with a forced-command key, and the server
-script pulls the image, checks `/api/health` and rolls back to the previous tag on
-failure; a manual "Deploy" run uses the same script. Plain Docker Compose, no Swarm.
-Needed first: the release workflow publishes a container image (the server stops
-building), and `compose.prod.yaml` joins the shared edge network (`CADDY_NETWORK=edge`)
-under an alias like `cocktailrecipes-app`.
-The swap is a short restart covered by the edge's retries (SQLite rules out two
-containers at once).
+**Next: get ready for the first deploy before the VPS exists** (plan of 2026-11-26,
+one subject per PR). server-ops-kit is the only controller of the server and deploys
+by image digest from its `apps/cocktailrecipes.yaml` (pin blocked until the owner pins
+a commit, domain and VPS); no session here plans or runs server steps. In order: the
+compose joins the shared network under the alias `cocktailrecipes-cocktail` (R2); the
+edge site file `infra/edge/sites/cocktailrecipes.caddy` (R1); the release workflow
+publishes `ghcr.io/lolmop103/cocktailrecipes` under a version tag, never `latest`
+(R3); then the dependency upgrades and the open items below. A deploy swap is a short
+restart covered by the edge's retries (SQLite rules out two containers at once).
 
 **Open items:**
 

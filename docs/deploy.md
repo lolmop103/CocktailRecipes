@@ -1,5 +1,12 @@
 # Deploying behind Caddy
 
+> **Source of truth for the server.** On the shared VPS, the server setup (baseline,
+> shared Caddy edge, deploys by image digest, secrets, backups, restore drills) belongs
+> to [server-ops-kit](https://github.com/lolmop103/server-ops-kit), the only thing that
+> changes the server. This page keeps app knowledge only: what the app needs (see
+> "Server needs" below) and how to run it by hand. The numbered steps and the Caddyfile
+> snippet are for a hand-run setup with your own Caddy, not for the shared server.
+
 Cocktail Recipes runs as one Docker container on a VPS, behind a Caddy you
 already run in Docker. Caddy terminates HTTPS and compresses responses; the app
 publishes no port of its own and is reached only over a shared Docker network.
@@ -72,7 +79,9 @@ CADDY_NETWORK=caddy
   until you set it in `.env`.
 - Changing the password (a new hash and a restart) ends every open session.
 
-## 3. Add the site to your Caddyfile
+## 3. Add the site to your Caddyfile (hand-run Caddy only)
+
+The shared edge uses a site file the kit ships, not this snippet.
 
 ```caddyfile
 cocktails.example.com {
@@ -175,6 +184,51 @@ The local stack (`docker-compose.yml`) publishes its port on loopback only
 (`127.0.0.1`), so nothing on the network reaches it directly. The test stack
 (`docker-compose-test.yml`) is not edited; it picks the hardening up the next time
 it is recreated.
+
+## Server needs
+
+What the app needs from the server, for server-ops-kit to provide and verify. Catalog
+format pending: this is a plain list under the skill's headings; the kit converts it.
+Values the owner has not decided are placeholders.
+
+- **Ports and exposure:** the `cocktail` service listens on 3000 inside the container.
+  Internal only: no published port; the edge reaches it over the shared Docker network.
+- **Domain:** one hostname, routed to `cocktail:3000` (placeholder `COCKTAIL_DOMAIN`,
+  supplied by the kit; no domain is written in this repository).
+- **Env vars** (template: `.env.example`; real values only on the server):
+  - secret: `ADMIN_PASSWORD_HASH` (scrypt hash made with `hash-password`), delivered
+    through the compose `env_file`;
+  - `ADMIN_USERNAME`;
+  - `CLIENT_ORIGIN`: the public `https://` origin, no path (placeholder until the domain
+    is decided);
+  - `TRUST_PROXY_HOPS`: 1 behind Caddy alone, 2 with Cloudflare in front (placeholder
+    until the owner decides); the server refuses to start without it;
+  - `SESSION_TTL_DAYS=14` (the default; remove any old `30`; sessions already stored
+    keep their old expiry until the next login);
+  - `LOG_LEVEL=info`, `CADDY_NETWORK` (the kit sets it to `edge`);
+  - set by the compose itself: `NODE_ENV`, `PORT`, `DATA_DIR`.
+- **Volumes and data:** the named volume `cocktail-prod-db` at `/data`: `cocktail.db`
+  plus its write-ahead log. Small (the measured run had 1000 recipes; check on real data after
+  launch); it only grows with recipes. The only writable places in the container are
+  `/data` and a 16 MB `/tmp`.
+- **Resource limits:** memory 128m with no swap (peak 80 MB measured), 1 CPU (3.9 % of a
+  core on average, 1.14 in a flood), 128 pids (peak 23). Starting values from a measured
+  run on small data; the kit reports real values back.
+- **Health endpoint:** `GET /api/health`, 200 when the app is up; expected well under 100 ms
+  (p95 15-28 ms during a single-IP flood, measured 2026-10-16).
+- **Backup job and restore check:** the snapshot command
+  `node server/dist/scripts/snapshot.js` writes one consistent `cocktail.db` to
+  `/data/snapshots/` while the app runs. Backup member: `cocktail.db`. `/data/snapshots`
+  holds one file (`cocktail.db`), rewritten at each snapshot and removed by the backup
+  job after the copy, so it is not pruned and does not grow. Frequency and the restore
+  drill are the kit's, running BinMark's `infra/backup` scripts; they depend on
+  BinMark's kit request R1 (a CocktailRecipes member is optional there).
+- **Scheduled jobs:** n/a — the app has none; the snapshot is run by the kit's backup job.
+- **Must NOT be exposed:** to the public: port 3000, `/data` and `/data/snapshots` (only the backup job reads the latter), the `.env` file.
+- **Startup and shutdown:** the container restarts by itself (`restart: unless-stopped`)
+  and runs migrations at start. On SIGTERM the app finishes in-flight requests, with a
+  force timer at 8 s; `stop_grace_period` is 10 s. A deploy swap is a short restart
+  (SQLite rules out two containers at once).
 
 ## Backups
 
