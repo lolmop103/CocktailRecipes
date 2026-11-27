@@ -1,0 +1,14 @@
+# Edge site file for the shared Caddy (server-ops-kit ships it at the pin).
+# COCKTAIL_DOMAIN comes from the edge .env; no domain is written here.
+# The upstream is the compose alias on the shared network (compose.prod.yaml).
+{$COCKTAIL_DOMAIN} {
+	import compress
+	import hsts
+	import security_headers   # the site serves the client too, so not security_headers_api
+	import flood cocktailrecipes
+	# 128 KB: above the api's JSON limit (express.json 64kb in server/src/app.ts).
+	request_body {
+		max_size 128KB
+	}
+	reverse_proxy cocktailrecipes-cocktail:3000
+}
