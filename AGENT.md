@@ -1,6 +1,6 @@
 # AGENT.md — Cocktail Project
 
-Stack: Node.js · Express 5 · React 19 · TypeScript 5 · Vite 8 · Vitest 5 · Playwright
+Stack: Node.js · Express 5 · React 19 · TypeScript 6 · Vite 8 · Vitest 5 · Playwright
 
 ---
 
