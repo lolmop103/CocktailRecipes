@@ -198,7 +198,8 @@ Values the owner has not decided are placeholders.
   Internal only: no published port; the edge reaches it over the shared Docker network.
 - **Domain:** one hostname, routed to `cocktailrecipes-cocktail:3000`, the service's alias on the shared
   network (placeholder `COCKTAIL_DOMAIN`, supplied by the kit; no domain is written in
-  this repository).
+  this repository). The edge site file is `infra/edge/sites/cocktailrecipes.caddy`
+  (request body capped at 128 KB, above the api's 64 KB JSON limit).
 - **Env vars** (template: `.env.example`; real values only on the server):
   - secret: `ADMIN_PASSWORD_HASH` (scrypt hash made with `hash-password`), delivered
     through the compose `env_file`;
