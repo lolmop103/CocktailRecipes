@@ -82,13 +82,12 @@ Everything else is "latest stable and compatible", checked in the first session 
 each day (`checking-dependency-freshness`). Each hold, its reason and when to
 revisit it:
 
-| Package                         | Held at       | Reason                                                                                                                                                                       | Revisit when                                                                 |
-| ------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `typescript`                    | below 6.1     | `typescript-eslint` 8.71 peers `typescript >=4.8.4 <6.1.0`, so TypeScript 7 is out (checked 2026-10-15). 6.0 is in range and is its own major-upgrade PR                     | `typescript-eslint` accepts TS 7                                             |
-| `eslint`, `@eslint/js`          | 9             | `eslint-plugin-jsx-a11y` 6.10.2 peers `eslint ^3 … ^9`, so ESLint 10 is out (checked 2026-10-15)                                                                             | `eslint-plugin-jsx-a11y` accepts ESLint 10                                   |
-| `vitest`, `@vitest/coverage-v8` | exactly 5.0.4 | 5.0.5 changed the `Assertion` type so `@testing-library/jest-dom/vitest` no longer augments it; client `tsc` and lint fail on every `toBeInTheDocument` (checked 2026-10-16) | a `vitest` or `@testing-library/jest-dom` release restores the matcher types |
-| `@vitest/eslint-plugin`         | 1.6.27        | 1.6.28 added a peer `typescript >=6.0.0`, which the `typescript` hold rules out (checked 2026-10-28)                                                                         | the project moves to TypeScript 6                                            |
-| `@types/node`                   | 24            | The runtime is `node:24-alpine` and `engines.node` is `>=24 <25`; the types follow the runtime, so 26 is out (checked 2026-11-27)                                            | the runtime image moves to Node 26                                           |
+| Package                 | Held at   | Reason                                                                                                                                                   | Revisit when                               |
+| ----------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| `typescript`            | below 6.1 | `typescript-eslint` 8.71 peers `typescript >=4.8.4 <6.1.0`, so TypeScript 7 is out (checked 2026-10-15). 6.0 is in range and is its own major-upgrade PR | `typescript-eslint` accepts TS 7           |
+| `eslint`, `@eslint/js`  | 9         | `eslint-plugin-jsx-a11y` 6.10.2 peers `eslint ^3 … ^9`, so ESLint 10 is out (checked 2026-10-15)                                                         | `eslint-plugin-jsx-a11y` accepts ESLint 10 |
+| `@vitest/eslint-plugin` | 1.6.27    | 1.6.28 added a peer `typescript >=6.0.0`, which the `typescript` hold rules out (checked 2026-10-28)                                                     | the project moves to TypeScript 6          |
+| `@types/node`           | 24        | The runtime is `node:24-alpine` and `engines.node` is `>=24 <25`; the types follow the runtime, so 26 is out (checked 2026-11-27)                        | the runtime image moves to Node 26         |
 
 ## Security exceptions
 
@@ -184,7 +183,7 @@ restart covered by the edge's retries (SQLite rules out two containers at once).
   exceptions). Done in `chore/deps-2026-11-06`: `concurrently` 10, `better-sqlite3` 13 (+
   `@types/better-sqlite3` 9), `globals` 17, `@types/supertest` 7, `@types/node` 24. Done in `chore/deps-leftovers-2026-11-07`: `eslint-plugin-react-hooks` 7 with its full recommended
   preset (`useCountdown`, `useUnauthorizedNotice` and `useListboxKeyboard` now adjust state during
-  render instead of in effects). Done in `chore/deps-2026-11-26`: the patch and minor bumps (vite 8.3.8, plugin-react 6.3.0, playwright 1.65.1, react-query 5.108.4, react-router-dom 7.18.6, express-rate-limit 8.7.5, better-sqlite3 13.2.0, typescript-eslint 8.74.0, concurrently, supertest, knip, prettier). Remaining: `jest-dom` 8 and `jsdom` 31 (own PRs; try `vitest` 5.1.1 in the jest-dom one), TypeScript 6.0, GitHub Actions v4 → v7.
+  render instead of in effects). Done in `chore/deps-2026-11-26`: the patch and minor bumps (vite 8.3.8, plugin-react 6.3.0, playwright 1.65.1, react-query 5.108.4, react-router-dom 7.18.6, express-rate-limit 8.7.5, better-sqlite3 13.2.0, typescript-eslint 8.74.0, concurrently, supertest, knip, prettier). Done in `chore/jest-dom-8`: `@testing-library/jest-dom` 8 and `vitest`/`@vitest/coverage-v8` 5.1.1 (the 5.0.4 hold is lifted: the matcher types work again). Remaining: `jsdom` 31 (own PR), TypeScript 6.0, GitHub Actions v4 → v7.
 - The Vite dev proxy target is hard-coded to port 3000 instead of following
   `PORT`.
 - `.gitignore` lists `.github/skills/`, yet `react-components/SKILL.md` is
