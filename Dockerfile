@@ -54,6 +54,13 @@ COPY --from=builder /app/server/package.json ./server/
 COPY --from=builder /app/server/dist ./server/dist
 COPY --from=builder /app/client/dist ./client/dist
 
+# The runtime starts `node` directly and never needs a package manager. The npm that ships in the
+# base image carries its own copies of undici and brace-expansion, which Trivy flags (6 HIGH, none
+# of them in the app); removing it removes the findings instead of accepting them.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+    /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
+    /usr/local/bin/yarn /usr/local/bin/yarnpkg
+
 # The database directory must be writable by the unprivileged runtime user.
 # The code under /app stays root-owned on purpose: the runtime user can read it but not change it.
 RUN mkdir -p /data && chown node:node /data

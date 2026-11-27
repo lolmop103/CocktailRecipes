@@ -108,6 +108,18 @@ The full list is in `AGENT.md`. The ones that gate a change:
 - Commits: Conventional Commits (`feat(server):`, `fix(client):`,
   `test(e2e):`, `refactor(shared):`, `docs:`, `chore:`). Never bypass hooks.
 
+## Deliverables
+
+| Deliverable                                                | Block         | Version source | Build settings (repo variables) | Signing / secrets |
+| ---------------------------------------------------------- | ------------- | -------------- | ------------------------------- | ----------------- |
+| Container image (GHCR `ghcr.io/lolmop103/cocktailrecipes`) | release/image | `package.json` | —                               | `GITHUB_TOKEN`    |
+
+A merge to `main` publishes `v<version>` and the image under the tag `<version>`, never
+`latest`; the release notes name the tag, the commit and the digest. Trivy scans the built
+image before it is pushed. A manual run of the release workflow publishes a test
+pre-release (`<version>-dev.<sha>`). Bump the version in `package.json` before merging to
+`main`.
+
 ## Conventions
 
 All code conventions — layering, the shared contract, TanStack Query and URL
