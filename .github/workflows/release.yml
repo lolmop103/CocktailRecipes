@@ -1,0 +1,232 @@
+# agent-kit ci-block: release/workflow v1
+name: release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: 'Deliverables to build: all, or a comma list without spaces (image)'
+        required: false
+        default: all
+        type: string
+
+permissions:
+  contents: read
+
+# Releases from main and manual test builds queue separately, so a test build never
+# displaces a release. GitHub keeps one pending run per group: a third push while one
+# release runs replaces the pending one (the newest commit carries both).
+concurrency:
+  group: release-${{ github.event_name }}
+  cancel-in-progress: false
+
+jobs:
+  # agent-kit ci-block: release/version v1
+  # A push to main releases vX.Y.Z and refuses a version that was already released; a manual run
+  # makes the pre-release vX.Y.Z-dev.<sha>, for the deliverables in `targets` (checked here).
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      build: ${{ steps.v.outputs.build }}
+      sha: ${{ steps.v.outputs.sha }}
+      release_tag: ${{ steps.v.outputs.release_tag }}
+      prerelease: ${{ steps.v.outputs.prerelease }}
+      targets: ${{ steps.v.outputs.targets }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - id: v
+        env:
+          VERSION_FILE: package.json
+          KNOWN_TARGETS: image
+          TARGETS: ${{ inputs.targets }}
+        run: |
+          requested=$(printf '%s' "$TARGETS" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
+          if [ -z "$requested" ] || [ "$requested" = all ]; then requested=$KNOWN_TARGETS; fi
+          for target in $(printf '%s' "$requested" | tr ',' ' '); do
+            case ",$KNOWN_TARGETS," in
+              *",$target,"*) ;;
+              *) echo "::error::Unknown deliverable '$target': choose from $KNOWN_TARGETS, or all"; exit 1 ;;
+            esac
+          done
+
+          case "$VERSION_FILE" in
+            *.json)
+              version=$(node -p "require('./$VERSION_FILE').version")
+              build=$GITHUB_RUN_NUMBER ;;
+            *)
+              full=$(sed -n 's/^version: *//p' "$VERSION_FILE" | tr -d '[:space:]')
+              version=${full%%+*}
+              build=${full##*+}
+              if [ "$build" = "$full" ]; then build=$GITHUB_RUN_NUMBER; fi ;;
+          esac
+          sha=$(git rev-parse --short HEAD)
+          if [ "$GITHUB_EVENT_NAME" = push ] && [ "$GITHUB_REF" = refs/heads/main ]; then
+            tag="v$version"
+            prerelease=false
+            if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+              echo "::error file=$VERSION_FILE::Release $tag already exists: bump the version before merging to main"
+              exit 1
+            fi
+          else
+            tag="v$version-dev.$sha"
+            prerelease=true
+          fi
+          {
+            echo "version=$version"
+            echo "build=$build"
+            echo "sha=$sha"
+            echo "release_tag=$tag"
+            echo "prerelease=$prerelease"
+            echo "targets=,$requested,"
+          } >> "$GITHUB_OUTPUT"
+
+  test:
+    needs: version
+    uses: ./.github/workflows/test.yml
+    with:
+      api: true
+  # agent-kit ci-block: release/image v4
+  # Tags: <version> from main, <version>-dev.<sha> from a manual run. Afterwards keeps
+  # the 3 newest dev-only images and deletes untagged ones (storage on GitHub Free is 500 MB).
+  image:
+    needs: [version, test]
+    if: contains(needs.version.outputs.targets, ',image,')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
+      tags: ${{ steps.tags.outputs.tags }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - id: tags
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+          SHA: ${{ needs.version.outputs.sha }}
+          PRERELEASE: ${{ needs.version.outputs.prerelease }}
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/cocktailrecipes"
+          # project: begin
+          # Never `latest`: the kit deploys by digest and a moving tag has no meaning here.
+          if [ "$PRERELEASE" = false ]; then
+            tags="$image:$VERSION"
+          else
+          # project: end
+            tags="$image:$VERSION-dev.$SHA"
+          fi
+          echo "tags=$tags" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          push: false
+          # The scan and the push use this tarball, in the workspace because a container step only sees it.
+          outputs: type=docker,dest=image.tar
+          tags: ${{ steps.tags.outputs.tags }}
+          build-args: |
+            APP_VERSION=${{ needs.version.outputs.version }}
+            GIT_SHA=${{ needs.version.outputs.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          # One manifest per push: with attestations every push is an index whose children are
+          # untagged, and the cleanup below would delete them.
+          provenance: false
+          sbom: false
+      - name: Database date
+        id: scan
+        run: echo "date=$(date -u +%F)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .trivy-cache
+          key: trivy-db-${{ steps.scan.outputs.date }}
+          restore-keys: trivy-db-
+      - name: Scan the built image
+        uses: docker://aquasec/trivy:0.76.1@sha256:790fd66d1697395d8693d1acaa1ea702406a20f109b6fc7bac8db623eca6c06c
+        with:
+          args: image --input image.tar --cache-dir .trivy-cache --severity HIGH,CRITICAL --ignore-unfixed --scanners vuln,secret --exit-code 1 --format table --output trivy.txt
+      - name: Scan result in the run summary
+        if: always()
+        run: |
+          {
+            echo '### trivy image (built, not yet pushed)'
+            echo '```'
+            cat trivy.txt 2>/dev/null || echo 'no report: the scan did not run'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - id: push
+        name: Push the scanned image
+        env:
+          TAGS: ${{ steps.tags.outputs.tags }}
+        run: |
+          docker load -i image.tar
+          for tag in ${TAGS//,/ }; do docker push "$tag"; done
+          ref=$(docker inspect --format '{{index .RepoDigests 0}}' "${TAGS%%,*}")
+          echo "digest=${ref#*@}" >> "$GITHUB_OUTPUT"
+      - name: Keep the 3 newest dev images, delete untagged ones
+        continue-on-error: true
+        # bash -eo pipefail: a failing gh call fails the step, which continue-on-error turns into a warning.
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSIONS: users/${{ github.repository_owner }}/packages/container/cocktailrecipes/versions
+        run: |
+          gh api "$VERSIONS" --paginate \
+            --jq '.[] | [.id, .created_at, ((.metadata.container.tags // []) | join(","))] | @tsv' |
+            sort -t "$(printf '\t')" -k2,2r |
+            awk -F'\t' '$3 == "" { print $1; next }
+              $3 ~ /-dev\./ && $3 !~ /(^|,)(latest|[0-9]+\.[0-9]+\.[0-9]+)(,|$)/ { if (++dev > 3) print $1 }' |
+            while read -r id; do gh api -X DELETE "$VERSIONS/$id" > /dev/null; done
+  # agent-kit ci-block: release/publish v2
+  # Runs when every selected deliverable succeeded (deselected ones are skipped), then keeps the
+  # 3 newest dev pre-releases. Real releases are never deleted.
+  # cost: 1 billed min
+  # v2: the cleanup runs under bash -eo pipefail, so a failing gh call warns instead of passing silently.
+  publish:
+    needs: [version, test, image]
+    if: always() && !failure() && !cancelled()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: dist
+          pattern: release-*
+          merge-multiple: true
+      - uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          tag_name: ${{ needs.version.outputs.release_tag }}
+          name: ${{ needs.version.outputs.release_tag }}
+          prerelease: ${{ needs.version.outputs.prerelease }}
+          target_commitish: ${{ github.sha }}
+          files: dist/*
+          body: |
+            **Version** ${{ needs.version.outputs.version }} (build ${{ needs.version.outputs.build }}) · **commit** ${{ needs.version.outputs.sha }}
+
+            **Image:** ${{ needs.image.outputs.tags || 'not built' }}
+            **Digest:** `${{ needs.image.outputs.digest || 'not built' }}`
+            Pin by digest: `ghcr.io/lolmop103/cocktailrecipes@${{ needs.image.outputs.digest }}`. There is no `latest` tag.
+      - name: Keep the 3 newest dev pre-releases
+        continue-on-error: true
+        # bash -eo pipefail: a failing gh call fails the step, which continue-on-error turns into a warning.
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release list --repo "$GITHUB_REPOSITORY" --limit 200 --json tagName,isPrerelease,createdAt \
+            --jq '[.[] | select(.isPrerelease and (.tagName | test("-dev\\."))) ] | sort_by(.createdAt) | reverse | .[3:] | .[].tagName' |
+            while read -r tag; do gh release delete "$tag" --repo "$GITHUB_REPOSITORY" --cleanup-tag --yes; done

@@ -212,7 +212,11 @@ Values the owner has not decided are placeholders.
     keep their old expiry until the next login);
   - `LOG_LEVEL=info`, `CADDY_NETWORK` (the kit sets it to `edge`; the service joins it
     with the alias `cocktailrecipes-cocktail`);
-  - optional `COCKTAIL_IMAGE`: the released image, pinned by digest (default: local build);
+  - optional `COCKTAIL_IMAGE`: the released image, pinned by digest (default: local build).
+    The release workflow publishes `ghcr.io/lolmop103/cocktailrecipes` under the tag of
+    the `package.json` version (never `latest`) on a merge to `main`; its notes name the
+    tag, the commit and the digest. A new GHCR package is private until the owner makes
+    it public (or gives the server a read token) after the first push;
   - set by the compose itself: `NODE_ENV`, `PORT`, `DATA_DIR`.
 - **Volumes and data:** the named volume `cocktail-prod-db` at `/data`: `cocktail.db`
   plus its write-ahead log. Small (the measured run had 1000 recipes; check on real data after

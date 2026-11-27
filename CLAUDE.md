@@ -168,8 +168,9 @@ by image digest from its `apps/cocktailrecipes.yaml` (pin blocked until the owne
 a commit, domain and VPS); no session here plans or runs server steps. In order: the
 compose joins the shared network under the alias `cocktailrecipes-cocktail` (R2); the
 edge site file `infra/edge/sites/cocktailrecipes.caddy` (R1); the release workflow
-publishes `ghcr.io/lolmop103/cocktailrecipes` under a version tag, never `latest`
-(R3); then the dependency upgrades and the open items below. A deploy swap is a short
+(`.github/workflows/release.yml`, R3) publishes `ghcr.io/lolmop103/cocktailrecipes` under
+the `package.json` version, never `latest`, after a Trivy scan (the runner image has no
+npm, which removed 6 HIGH findings that lived in the base image's bundled npm); then the dependency upgrades and the open items below. A deploy swap is a short
 restart covered by the edge's retries (SQLite rules out two containers at once).
 
 **Open items:**
