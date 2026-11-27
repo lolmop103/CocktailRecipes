@@ -6,7 +6,12 @@
 #   docker compose -f compose.prod.yaml up -d --build
 #
 # No ports are published: Caddy reaches the container over the shared Docker
-# network as `cocktail:3000`, and nothing else can.
+# network as `cocktailrecipes-cocktail:3000` (a network alias unique to this app,
+# so it cannot clash with another stack's `cocktail` service), and nothing else can.
+#
+# COCKTAIL_IMAGE (optional) names the image to run, e.g. a released
+# ghcr.io/<owner>/cocktailrecipes@sha256:<digest>; with it set, run
+# `docker compose -f compose.prod.yaml up -d --no-build` (never builds on the server; pull the image first if it is not there yet).
 
 # Its own project name, so this stack never shares containers or the data
 # volume with the local docker-compose.yml in the same checkout.
@@ -15,7 +20,7 @@ name: cocktail-prod
 services:
   cocktail:
     build: .
-    image: cocktail:latest
+    image: ${COCKTAIL_IMAGE:-cocktail:latest}
     # Must exceed SHUTDOWN_FORCE_MS (8000 ms) so the app force timer fires before SIGKILL.
     stop_grace_period: 10s
     env_file: ${COCKTAIL_ENV_FILE:-.env}
@@ -30,7 +35,9 @@ services:
     volumes:
       - cocktail-db:/data
     networks:
-      - caddy
+      caddy:
+        aliases:
+          - cocktailrecipes-cocktail
     # A tiny init as PID 1 forwards `docker stop` to Node, so the container
     # stops at once instead of being killed after 10 s.
     init: true

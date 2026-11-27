@@ -15,6 +15,9 @@ publishes no port of its own and is reached only over a shared Docker network.
 visitor ──HTTPS──▶ Caddy ──http://cocktail:3000──▶ app container ──▶ SQLite (volume cocktail-prod-db)
 ```
 
+On the shared edge the upstream is the alias `cocktailrecipes-cocktail:3000` instead
+(see "Server needs"); `cocktail` is the name for a Caddy you run yourself.
+
 ## Prerequisites
 
 - Docker with Compose v2 on the VPS.
@@ -193,8 +196,9 @@ Values the owner has not decided are placeholders.
 
 - **Ports and exposure:** the `cocktail` service listens on 3000 inside the container.
   Internal only: no published port; the edge reaches it over the shared Docker network.
-- **Domain:** one hostname, routed to `cocktail:3000` (placeholder `COCKTAIL_DOMAIN`,
-  supplied by the kit; no domain is written in this repository).
+- **Domain:** one hostname, routed to `cocktailrecipes-cocktail:3000`, the service's alias on the shared
+  network (placeholder `COCKTAIL_DOMAIN`, supplied by the kit; no domain is written in
+  this repository).
 - **Env vars** (template: `.env.example`; real values only on the server):
   - secret: `ADMIN_PASSWORD_HASH` (scrypt hash made with `hash-password`), delivered
     through the compose `env_file`;
@@ -205,7 +209,9 @@ Values the owner has not decided are placeholders.
     until the owner decides); the server refuses to start without it;
   - `SESSION_TTL_DAYS=14` (the default; remove any old `30`; sessions already stored
     keep their old expiry until the next login);
-  - `LOG_LEVEL=info`, `CADDY_NETWORK` (the kit sets it to `edge`);
+  - `LOG_LEVEL=info`, `CADDY_NETWORK` (the kit sets it to `edge`; the service joins it
+    with the alias `cocktailrecipes-cocktail`);
+  - optional `COCKTAIL_IMAGE`: the released image, pinned by digest (default: local build);
   - set by the compose itself: `NODE_ENV`, `PORT`, `DATA_DIR`.
 - **Volumes and data:** the named volume `cocktail-prod-db` at `/data`: `cocktail.db`
   plus its write-ahead log. Small (the measured run had 1000 recipes; check on real data after
