@@ -161,16 +161,19 @@ container behind BinMark's local edge, for a demo on the home network (README,
 "Show it on your network"). It needs BinMark's `sites-local/cocktailrecipes-test.caddy`
 (BinMark PR #61).
 
-**Next: get ready for the first deploy before the VPS exists** (plan of 2026-11-26,
-one subject per PR). server-ops-kit is the only controller of the server and deploys
-by image digest from its `apps/cocktailrecipes.yaml` (pin blocked until the owner pins
-a commit, domain and VPS); no session here plans or runs server steps. In order: the
-compose joins the shared network under the alias `cocktailrecipes-cocktail` (R2); the
-edge site file `infra/edge/sites/cocktailrecipes.caddy` (R1); the release workflow
-(`.github/workflows/release.yml`, R3) publishes `ghcr.io/lolmop103/cocktailrecipes` under
-the `package.json` version, never `latest`, after a Trivy scan (the runner image has no
-npm, which removed 6 HIGH findings that lived in the base image's bundled npm); then the dependency upgrades and the open items below. A deploy swap is a short
-restart covered by the edge's retries (SQLite rules out two containers at once).
+**First-deploy readiness is merged** (plan of 2026-11-26, PRs #29–#36).
+server-ops-kit is the only controller of the server and deploys by image digest from
+its `apps/cocktailrecipes.yaml` (pin blocked until the owner pins a commit, domain and
+VPS); no session here plans or runs server steps. In place: the "Server needs" section
+in `docs/deploy.md`; the compose joins the shared network under the alias
+`cocktailrecipes-cocktail` (R2); the edge site file `infra/edge/sites/cocktailrecipes.caddy`
+(R1); the release workflow (`.github/workflows/release.yml`, R3), which publishes
+`ghcr.io/lolmop103/cocktailrecipes` under the `package.json` version, never `latest`,
+after a Trivy scan (the runner image has no npm, which removed 6 HIGH findings that
+lived in the base image's bundled npm); and the dependency upgrades. The release has
+not run yet: the owner bumps the version and merges `develop` into `main`. A deploy
+swap is a short restart covered by the edge's retries (SQLite rules out two containers
+at once).
 
 **Open items:**
 
@@ -182,7 +185,7 @@ restart covered by the edge's retries (SQLite rules out two containers at once).
   exceptions). Done in `chore/deps-2026-11-06`: `concurrently` 10, `better-sqlite3` 13 (+
   `@types/better-sqlite3` 9), `globals` 17, `@types/supertest` 7, `@types/node` 24. Done in `chore/deps-leftovers-2026-11-07`: `eslint-plugin-react-hooks` 7 with its full recommended
   preset (`useCountdown`, `useUnauthorizedNotice` and `useListboxKeyboard` now adjust state during
-  render instead of in effects). Done in `chore/deps-2026-11-26`: the patch and minor bumps (vite 8.3.8, plugin-react 6.3.0, playwright 1.65.1, react-query 5.108.4, react-router-dom 7.18.6, express-rate-limit 8.7.5, better-sqlite3 13.2.0, typescript-eslint 8.74.0, concurrently, supertest, knip, prettier). Done in `chore/jest-dom-8`: `@testing-library/jest-dom` 8 and `vitest`/`@vitest/coverage-v8` 5.1.1 (the 5.0.4 hold is lifted: the matcher types work again). Done in `chore/jsdom-31`: `jsdom` 31. Done in `chore/typescript-6`: TypeScript 6.0.3 (client gets `src/vite-env.d.ts` for the CSS import) and `@vitest/eslint-plugin` 1.6.28 (hold lifted). Remaining: GitHub Actions v4 → v7.
+  render instead of in effects). Done in `chore/deps-2026-11-26`: the patch and minor bumps (vite 8.3.8, plugin-react 6.3.0, playwright 1.65.1, react-query 5.108.4, react-router-dom 7.18.6, express-rate-limit 8.7.5, better-sqlite3 13.2.0, typescript-eslint 8.74.0, concurrently, supertest, knip, prettier). Done in `chore/jest-dom-8`: `@testing-library/jest-dom` 8 and `vitest`/`@vitest/coverage-v8` 5.1.1 (the 5.0.4 hold is lifted: the matcher types work again). Done in `chore/jsdom-31`: `jsdom` 31. Done in `chore/typescript-6`: TypeScript 6.0.3 (client gets `src/vite-env.d.ts` for the CSS import) and `@vitest/eslint-plugin` 1.6.28 (hold lifted). The workflows are already pinned at current majors.
 - The Vite dev proxy target is hard-coded to port 3000 instead of following
   `PORT`.
 - `.gitignore` lists `.github/skills/`, yet `react-components/SKILL.md` is
