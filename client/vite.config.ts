@@ -10,7 +10,8 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        // Follows the API's own `PORT` (default 3000); `pnpm dev` starts both with one environment.
+        target: `http://localhost:${process.env['PORT'] ?? '3000'}`,
         changeOrigin: true,
       },
     },
