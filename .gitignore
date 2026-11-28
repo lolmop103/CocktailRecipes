@@ -57,7 +57,9 @@ coverage/
 # Several of these files reference an employer's internal modules, solution
 # names and private component library; this repository is public.
 # Remove these lines only after those references have been stripped.
-.github/skills/
+# The react-components skill is this project's own and is tracked.
+.github/skills/*
+!.github/skills/react-components/
 .github/agents/
 .github/release/
 
