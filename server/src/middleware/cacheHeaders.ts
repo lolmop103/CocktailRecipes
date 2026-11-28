@@ -1,5 +1,5 @@
 import type { RequestHandler, Response } from 'express';
-import { sep } from 'node:path';
+import { relative, sep } from 'node:path';
 
 const ONE_YEAR_IMMUTABLE = 'public, max-age=31536000, immutable';
 const REVALIDATE = 'no-cache';
@@ -17,13 +17,15 @@ export const apiCacheHeaders: RequestHandler = (req, res, next) => {
 /**
  * Vite puts a content hash in every file name under `assets/`, so those never
  * change and can be cached for a year. Everything else — `index.html` above
- * all — is revalidated, so a deploy is picked up at once.
+ * all — is revalidated, so a deploy is picked up at once. The check runs on the
+ * path relative to the static root, so a checkout under a directory that happens
+ * to be called "assets" does not get its `index.html` cached for a year.
  */
-export function staticCacheHeaders(res: Response, filePath: string): void {
-  res.set(
-    'Cache-Control',
-    filePath.includes(`${sep}assets${sep}`) ? ONE_YEAR_IMMUTABLE : REVALIDATE,
-  );
+export function staticCacheHeaders(root: string): (res: Response, filePath: string) => void {
+  return (res, filePath) => {
+    const immutable = relative(root, filePath).startsWith(`assets${sep}`);
+    res.set('Cache-Control', immutable ? ONE_YEAR_IMMUTABLE : REVALIDATE);
+  };
 }
 
 export const NO_CACHE = REVALIDATE;
