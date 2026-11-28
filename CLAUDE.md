@@ -188,8 +188,6 @@ at once).
   render instead of in effects). Done in `chore/deps-2026-11-26`: the patch and minor bumps (vite 8.3.8, plugin-react 6.3.0, playwright 1.65.1, react-query 5.108.4, react-router-dom 7.18.6, express-rate-limit 8.7.5, better-sqlite3 13.2.0, typescript-eslint 8.74.0, concurrently, supertest, knip, prettier). Done in `chore/jest-dom-8`: `@testing-library/jest-dom` 8 and `vitest`/`@vitest/coverage-v8` 5.1.1 (the 5.0.4 hold is lifted: the matcher types work again). Done in `chore/jsdom-31`: `jsdom` 31. Done in `chore/typescript-6`: TypeScript 6.0.3 (client gets `src/vite-env.d.ts` for the CSS import) and `@vitest/eslint-plugin` 1.6.28 (hold lifted). The workflows are already pinned at current majors.
 - The Vite dev proxy target is hard-coded to port 3000 instead of following
   `PORT`.
-- `.gitignore` lists `.github/skills/`, yet `react-components/SKILL.md` is
-  tracked, and that skill still says "React 18".
 - e18e analyze flags the `exports` field in `packages/shared/package.json` as
   ignored by Node — a false positive for a workspace package; keep it.
 - **Review findings deferred on 2026-10-16** (minor; each was judged not to hurt

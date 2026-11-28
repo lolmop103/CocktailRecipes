@@ -8,7 +8,7 @@ in: client/**/\*.tsx · client/**/*.ts
 
 # React Components
 
-Stack: React 18 · TypeScript · Vite · React Router · TanStack Query.
+Stack: React 19 · TypeScript · Vite · React Router · TanStack Query.
 No form library — form state is plain `useState` plus pure helpers.
 
 ## Declaration
