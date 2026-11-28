@@ -58,9 +58,8 @@ docker build -t cocktail . && docker run -p 3105:3000 cocktail   # image smoke t
   Install pnpm with `npm install -g pnpm@12.15.0`, not the standalone binary;
   `npm install` in this repository stops with an error on purpose.
 - **Port 3000 is taken** by another Node process on this machine. `pnpm dev`
-  needs `PORT` in `.env` set to a free port, and the Vite proxy target in
-  `client/vite.config.ts` is hard-coded to `http://localhost:3000` — see the open
-  items.
+  needs `PORT` set to a free port in the shell environment (the server does not
+  read `.env`); the Vite proxy in `client/vite.config.ts` follows the same `PORT`.
 - **Docker ports on this machine:** CocktailRecipes `docker compose up` →
   http://localhost:3009 (`HOST_PORT`, project `cocktailrecipes`). The test stack
   (`docker-compose-test.yml`, project `cocktailrecipes-test`) publishes nothing
@@ -186,8 +185,6 @@ at once).
   `@types/better-sqlite3` 9), `globals` 17, `@types/supertest` 7, `@types/node` 24. Done in `chore/deps-leftovers-2026-11-07`: `eslint-plugin-react-hooks` 7 with its full recommended
   preset (`useCountdown`, `useUnauthorizedNotice` and `useListboxKeyboard` now adjust state during
   render instead of in effects). Done in `chore/deps-2026-11-26`: the patch and minor bumps (vite 8.3.8, plugin-react 6.3.0, playwright 1.65.1, react-query 5.108.4, react-router-dom 7.18.6, express-rate-limit 8.7.5, better-sqlite3 13.2.0, typescript-eslint 8.74.0, concurrently, supertest, knip, prettier). Done in `chore/jest-dom-8`: `@testing-library/jest-dom` 8 and `vitest`/`@vitest/coverage-v8` 5.1.1 (the 5.0.4 hold is lifted: the matcher types work again). Done in `chore/jsdom-31`: `jsdom` 31. Done in `chore/typescript-6`: TypeScript 6.0.3 (client gets `src/vite-env.d.ts` for the CSS import) and `@vitest/eslint-plugin` 1.6.28 (hold lifted). The workflows are already pinned at current majors.
-- The Vite dev proxy target is hard-coded to port 3000 instead of following
-  `PORT`.
 - e18e analyze flags the `exports` field in `packages/shared/package.json` as
   ignored by Node — a false positive for a workspace package; keep it.
 - **Review findings deferred on 2026-10-16** (minor; each was judged not to hurt
