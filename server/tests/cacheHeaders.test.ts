@@ -2,6 +2,9 @@ import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import { createServer } from 'node:http';
 import { createApp } from '../src/app.js';
+import { join } from 'node:path';
+import type { Response } from 'express';
+import { staticCacheHeaders } from '../src/middleware/cacheHeaders.js';
 import { applyServerTimeouts } from '../src/lib/serverTimeouts.js';
 
 const app = createApp();
@@ -27,6 +30,35 @@ describe('API cache headers', () => {
       .set('If-None-Match', first.headers['etag'] as string);
 
     expect(second.status).toBe(304);
+  });
+});
+
+describe('static cache headers', () => {
+  const cacheControlFor = (root: string, file: string) => {
+    let value = '';
+    const res = { set: (_name: string, v: string) => (value = v) } as unknown as Response;
+    staticCacheHeaders(root)(res, file);
+    return value;
+  };
+
+  it('hashedAsset_immutable', () => {
+    const root = join('srv', 'client', 'dist');
+
+    expect(cacheControlFor(root, join(root, 'assets', 'index-abc.js'))).toBe(
+      'public, max-age=31536000, immutable',
+    );
+  });
+
+  it('indexHtml_revalidate', () => {
+    const root = join('srv', 'client', 'dist');
+
+    expect(cacheControlFor(root, join(root, 'index.html'))).toBe('no-cache');
+  });
+
+  it('rootInsideAssetsDirectory_indexHtmlStillRevalidates', () => {
+    const root = join('srv', 'assets', 'client', 'dist');
+
+    expect(cacheControlFor(root, join(root, 'index.html'))).toBe('no-cache');
   });
 });
 

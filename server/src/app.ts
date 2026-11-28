@@ -63,7 +63,12 @@ export function createApp(): Express {
   if (env.NODE_ENV === 'production') {
     const clientDist = resolve(process.cwd(), 'client', 'dist');
     if (existsSync(clientDist)) {
-      app.use(express.static(clientDist, { cacheControl: false, setHeaders: staticCacheHeaders }));
+      app.use(
+        express.static(clientDist, {
+          cacheControl: false,
+          setHeaders: staticCacheHeaders(clientDist),
+        }),
+      );
       // Express 5 (path-to-regexp v8) no longer accepts a bare '*'; the
       // wildcard must be named.
       app.get('/{*splat}', (_req, res) => {

@@ -2,7 +2,7 @@ import type { Server } from 'node:http';
 
 /** A client that has not sent its headers by then is dropped. */
 const HEADERS_TIMEOUT_MS = 10_000;
-/** No request may take longer than this end to end. */
+/** A client has this long to send the whole request (headers and body); responses are not limited. */
 const REQUEST_TIMEOUT_MS = 30_000;
 
 /**

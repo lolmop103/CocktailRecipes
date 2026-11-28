@@ -200,11 +200,9 @@ at once).
   - Guards: `sameOrigin` exempts OPTIONS, which `cors` already answers; the
     session-expired hook reacts to every `updated` event of a failed mutation
     (N classify calls → N session refetches).
-  - Limits and caching: the `assets/` cache check runs on the absolute path (a
-    checkout under a directory named "assets" would cache `index.html` for a
-    year; Docker's `/app` is safe); the timeouts comment overstates
-    `requestTimeout`; a 429 on `/api/auth/me` hides the admin's controls until
-    the next successful check.
+  - Limits: a 429 on `/api/auth/me` hides the admin's controls until the next
+    successful check. (The `assets/` cache check and the `requestTimeout` comment
+    were fixed on 2026-11-28.)
 
 ## Not yet set up (intentional)
 
